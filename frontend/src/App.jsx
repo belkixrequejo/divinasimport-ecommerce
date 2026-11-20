@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useState } from "react";
 import { supabase } from "./supabase";
 import Proformas from "./components/proformas/Proformas";
 import Categories from "./components/categories/Categories";
+import Customers from "./components/customers/Customers";
 import {
   Search,
   ShoppingBag,
@@ -972,15 +973,7 @@ Quedo pendiente de confirmar envío o entrega.`;
                 ))}
               </div>
             )}
-            {page === "customers" && (
-              <div className="panel">
-                <h2>Clientes</h2>
-                <p>
-                  Los clientes se registran automáticamente al crear pedidos y
-                  proformas.
-                </p>
-              </div>
-            )}
+            {page === "customers" && <Customers />}
             {page === "proformas" && (
               <Proformas
                 products={products}
