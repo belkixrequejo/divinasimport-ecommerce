@@ -2322,3 +2322,244 @@ button {
     transform: translateY(0) scale(1);
   }
 }
+
+.proformaDownloadActions {
+  margin-top: 14px;
+}
+
+.proformaDownloadButton {
+  width: 100%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 9px;
+  padding: 11px 15px;
+  border: none;
+  border-radius: 9px;
+  background: #884798;
+  color: #fff;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.proformaDownloadButton:hover {
+  background: #71377f;
+}
+
+.proformaDownloadButton:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+/* Comprobante PNG */
+.proformaReceiptCapture {
+  position: fixed;
+  left: -10000px;
+  top: 0;
+  width: 700px;
+  pointer-events: none;
+}
+
+.proformaReceipt {
+  box-sizing: border-box;
+  width: 700px;
+  padding: 42px;
+  background: #fff;
+  color: #29232d;
+  font-family: Arial, sans-serif;
+}
+
+.proformaReceiptBrand {
+  text-align: center;
+  padding-bottom: 24px;
+}
+
+.proformaReceiptBrandName {
+  font-size: 39px;
+  font-weight: 900;
+  letter-spacing: 1px;
+  color: #884798;
+}
+
+.proformaReceiptBrandName span {
+  color: #ff920c;
+}
+
+.proformaReceiptBrand p {
+  font-size: 12px;
+  letter-spacing: 3px;
+  color: #777;
+  margin: 5px 0 17px;
+}
+
+.proformaReceiptAccent {
+  width: 90px;
+  height: 5px;
+  background: #ff920c;
+  border-radius: 5px;
+  margin: 0 auto 22px;
+}
+
+.proformaReceiptBrand h2 {
+  font-size: 19px;
+  letter-spacing: 2px;
+  margin: 0 0 12px;
+}
+
+.proformaReceiptStatus {
+  display: inline-block;
+  padding: 7px 14px;
+  background: #f8f3fa;
+  color: #884798;
+  border-radius: 20px;
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.proformaReceiptNumber {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 15px;
+  margin-bottom: 24px;
+  background: #f8f3fa;
+  border: 1px solid #eaddec;
+  border-radius: 10px;
+}
+
+.proformaReceiptNumber span {
+  color: #777;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.proformaReceiptNumber strong {
+  color: #884798;
+  font-size: 18px;
+}
+
+.proformaReceiptBlock {
+  margin-bottom: 24px;
+}
+
+.proformaReceiptBlock h3 {
+  color: #884798;
+  font-size: 13px;
+  border-bottom: 2px solid #f0e6f2;
+  padding-bottom: 9px;
+  margin: 0 0 12px;
+  letter-spacing: 1px;
+}
+
+.proformaReceiptBlock p {
+  font-size: 13px;
+  margin: 7px 0;
+  line-height: 1.5;
+}
+
+.proformaReceiptTableHeader,
+.proformaReceiptProduct {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 65px 105px;
+  gap: 12px;
+  align-items: start;
+}
+
+.proformaReceiptTableHeader {
+  padding: 12px;
+  background: #884798;
+  color: white;
+  font-size: 11px;
+  font-weight: 700;
+  border-radius: 7px;
+}
+
+.proformaReceiptTableHeader span:nth-child(2),
+.proformaReceiptProduct > strong:nth-child(2) {
+  text-align: center;
+}
+
+.proformaReceiptTableHeader span:last-child,
+.proformaReceiptProduct > strong:last-child {
+  text-align: right;
+}
+
+.proformaReceiptProduct {
+  padding: 13px 12px;
+  border-bottom: 1px solid #eee;
+  font-size: 12px;
+}
+
+.proformaReceiptProduct > div {
+  display: grid;
+  gap: 5px;
+}
+
+.proformaReceiptProduct > div strong {
+  font-size: 13px;
+}
+
+.proformaReceiptProduct small {
+  color: #777;
+  font-size: 11px;
+}
+
+.proformaReceiptTotals {
+  display: grid;
+  gap: 12px;
+  margin-top: 25px;
+  padding: 20px;
+  background: #f8f3fa;
+  border-radius: 10px;
+}
+
+.proformaReceiptTotals > div {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 13px;
+}
+
+.proformaReceiptGrandTotal {
+  padding-top: 13px;
+  border-top: 1px solid #e5d8e9;
+  color: #884798;
+  font-size: 19px !important;
+  font-weight: 800;
+}
+
+.proformaReceiptNotes {
+  margin-top: 22px;
+  padding: 14px;
+  background: #fafafa;
+  border-radius: 8px;
+  font-size: 12px;
+}
+
+.proformaReceiptNotes p {
+  margin-bottom: 0;
+  white-space: pre-wrap;
+}
+
+.proformaReceiptFooter {
+  text-align: center;
+  border-top: 1px dashed #ddd;
+  margin-top: 30px;
+  padding-top: 22px;
+}
+
+.proformaReceiptFooter strong {
+  color: #884798;
+  font-size: 16px;
+}
+
+.proformaReceiptFooter p {
+  color: #888;
+  font-size: 11px;
+  margin: 8px 0;
+}
+
+.proformaReceiptFooter small {
+  color: #999;
+  font-size: 10px;
+}

@@ -1,13 +1,17 @@
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { supabase } from "../../supabase";
-import { X, Package, UserRound, Receipt } from "lucide-react";
+import { X, Package, UserRound, Receipt, Download } from "lucide-react";
+import html2canvas from "html2canvas";
 
 export default function SaleDetail({ sale, customer, onClose }) {
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
   const [products, setProducts] = useState([]);
   const [variants, setVariants] = useState([]);
+  const [downloading, setDownloading] = useState(false);
+
+  const receiptRef = useRef(null);
 
   useEffect(() => {
     loadDetails();
@@ -64,11 +68,50 @@ export default function SaleDetail({ sale, customer, onClose }) {
     }
   };
 
-  const money = (value) =>
-    `$${Number(value || 0).toFixed(2)}`;
+  const money = (value) => `$${Number(value || 0).toFixed(2)}`;
 
   const productById = new Map(products.map((p) => [p.id, p]));
   const variantById = new Map(variants.map((v) => [v.id, v]));
+
+  const downloadReceipt = async () => {
+    if (!receiptRef.current || loading || items.length === 0) {
+      window.notify?.("Espera a que carguen los productos de la venta", "warning");
+      return;
+    }
+
+    setDownloading(true);
+
+    try {
+      const canvas = await html2canvas(receiptRef.current, {
+        scale: 2,
+        backgroundColor: "#ffffff",
+        useCORS: true,
+        logging: false,
+      });
+
+      const link = document.createElement("a");
+      const saleNumber = String(sale.sale_number || sale.id)
+        .replace(/[^a-zA-Z0-9-_]/g, "-");
+
+      link.download = `DIVINAS-IMPORT-${saleNumber}.png`;
+      link.href = canvas.toDataURL("image/png");
+      link.click();
+
+      window.notify?.("Comprobante descargado correctamente", "success");
+    } catch (error) {
+      console.error("Error generando comprobante:", error);
+      window.notify?.("No se pudo generar la imagen del comprobante", "error");
+    } finally {
+      setDownloading(false);
+    }
+  };
+
+  const saleDate = sale.created_at
+    ? new Date(sale.created_at).toLocaleString("es-EC", {
+        dateStyle: "long",
+        timeStyle: "short",
+      })
+    : "—";
 
   return (
     <div className="saleDetailOverlay" onMouseDown={onClose}>
@@ -105,11 +148,7 @@ export default function SaleDetail({ sale, customer, onClose }) {
         <div className="saleDetailMetadata">
           <div>
             <span>Fecha</span>
-            <strong>
-              {sale.created_at
-                ? new Date(sale.created_at).toLocaleString("es-EC")
-                : "—"}
-            </strong>
+            <strong>{saleDate}</strong>
           </div>
 
           <div>
@@ -145,13 +184,12 @@ export default function SaleDetail({ sale, customer, onClose }) {
                       {product?.name || "Producto no disponible"}
                     </strong>
 
-                    <small>
-                      Código: {product?.code || "—"}
-                    </small>
+                    <small>Código: {product?.code || "—"}</small>
 
                     {variant && (
                       <small>
-                        Talla: {variant.size || "—"} · Color: {variant.color || "—"}
+                        Talla: {variant.size || "—"} · Color:{" "}
+                        {variant.color || "—"}
                       </small>
                     )}
 
@@ -181,9 +219,129 @@ export default function SaleDetail({ sale, customer, onClose }) {
           <strong>{money(sale.total)}</strong>
         </div>
 
-        <button className="saleDetailFooterButton" onClick={onClose}>
-          Cerrar detalle
-        </button>
+        <div className="saleDetailActions">
+          <button
+            className="saleDetailDownload"
+            onClick={downloadReceipt}
+            disabled={loading || downloading || items.length === 0}
+          >
+            <Download size={18} />
+            {downloading ? "Generando imagen..." : "Descargar comprobante PNG"}
+          </button>
+
+          <button className="saleDetailFooterButton" onClick={onClose}>
+            Cerrar detalle
+          </button>
+        </div>
+
+        {/* Comprobante que se convierte en imagen PNG */}
+        <div className="saleReceiptCapture">
+          <div className="saleReceipt" ref={receiptRef}>
+            <div className="saleReceiptBrand">
+              <div className="saleReceiptBrandName">
+                DIVINAS <span>IMPORT</span>
+              </div>
+              <p>MODA PARA TODA LA FAMILIA</p>
+              <div className="saleReceiptAccent" />
+              <h2>COMPROBANTE DE VENTA</h2>
+              <span className="saleReceiptStatus">VENTA REGISTRADA</span>
+            </div>
+
+            <div className="saleReceiptNumber">
+              <span>N.º DE VENTA</span>
+              <strong>{sale.sale_number || "—"}</strong>
+            </div>
+
+            <div className="saleReceiptBlock">
+              <h3>DATOS DEL CLIENTE</h3>
+              <p>
+                <strong>Cliente:</strong>{" "}
+                {customer?.full_name || "Cliente no disponible"}
+              </p>
+              <p>
+                <strong>Teléfono:</strong>{" "}
+                {customer?.phone || "No registrado"}
+              </p>
+              <p>
+                <strong>Ciudad:</strong> {customer?.city || "No registrada"}
+              </p>
+              {customer?.address && (
+                <p>
+                  <strong>Dirección:</strong> {customer.address}
+                </p>
+              )}
+            </div>
+
+            <div className="saleReceiptBlock">
+              <h3>INFORMACIÓN DE LA VENTA</h3>
+              <p>
+                <strong>Fecha:</strong> {saleDate}
+              </p>
+              <p>
+                <strong>Método de pago:</strong>{" "}
+                {sale.payment_method || "No registrado"}
+              </p>
+              {sale.payment_reference && (
+                <p>
+                  <strong>Referencia:</strong> {sale.payment_reference}
+                </p>
+              )}
+            </div>
+
+            <div className="saleReceiptBlock">
+              <h3>DETALLE DE PRODUCTOS</h3>
+
+              <div className="saleReceiptTableHeader">
+                <span>PRODUCTO</span>
+                <span>CANT.</span>
+                <span>TOTAL</span>
+              </div>
+
+              {items.map((item) => {
+                const product = productById.get(item.product_id);
+                const variant = variantById.get(item.variant_id);
+
+                return (
+                  <div className="saleReceiptProduct" key={item.id}>
+                    <div>
+                      <strong>
+                        {product?.name || "Producto no disponible"}
+                      </strong>
+                      <small>Código: {product?.code || "—"}</small>
+                      {variant && (
+                        <small>
+                          Talla: {variant.size || "—"} · Color:{" "}
+                          {variant.color || "—"}
+                        </small>
+                      )}
+                      <small>
+                        Precio unitario: {money(item.unit_price)}
+                      </small>
+                      {Number(item.discount_percent) > 0 && (
+                        <small>
+                          Descuento aplicado: {item.discount_percent}%
+                        </small>
+                      )}
+                    </div>
+
+                    <strong>{item.quantity}</strong>
+                    <strong>{money(item.line_total)}</strong>
+                  </div>
+                );
+              })}
+            </div>
+
+            <div className="saleReceiptFinalTotal">
+              <span>TOTAL A PAGAR</span>
+              <strong>{money(sale.total)}</strong>
+            </div>
+
+            <div className="saleReceiptFooter">
+              <strong>¡GRACIAS POR TU COMPRA!</strong>
+              <p>DIVINAS IMPORT · Moda para toda la familia</p>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
   );

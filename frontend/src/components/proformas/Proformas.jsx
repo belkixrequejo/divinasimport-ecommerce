@@ -1,14 +1,9 @@
-
 import { useEffect, useState } from "react";
 import { supabase } from "../../supabase";
 import ProformaCard from "./ProformaCard";
 import ProformaForm from "./ProformaForm";
 
-export default function Proformas({
-  products,
-  discounts,
-  onConfirmSale,
-}) {
+export default function Proformas({ products, discounts, onConfirmSale }) {
   const [proformas, setProformas] = useState([]);
   const [editing, setEditing] = useState(null);
   const [showForm, setShowForm] = useState(false);
@@ -49,7 +44,15 @@ export default function Proformas({
       const { data, error } = await supabase
         .from("proformas")
         .select(
-          "*,customers(full_name,city,phone),proforma_items(*,products(name,code))"
+          `
+            *,
+            customers(full_name, city, phone, address),
+            proforma_items(
+                *,
+                products(name, code),
+                product_variants(size, color, sku)
+            )
+            `,
         )
         .order("created_at", { ascending: false });
 
@@ -93,26 +96,21 @@ export default function Proformas({
     }
   }
 
-  
-async function cancelProforma(id) {
-  try {
-    await request(`/admin/proformas/${id}/cancel`, {
-      method: "PATCH",
-    });
+  async function cancelProforma(id) {
+    try {
+      await request(`/admin/proformas/${id}/cancel`, {
+        method: "PATCH",
+      });
 
-    window.notify("Proforma anulada correctamente.", "success");
+      window.notify("Proforma anulada correctamente.", "success");
 
-    await loadProformas();
-  } catch (error) {
-    window.notify(
-      error.message || "No se pudo anular la proforma.",
-      "error"
-    );
+      await loadProformas();
+    } catch (error) {
+      window.notify(error.message || "No se pudo anular la proforma.", "error");
 
-    throw error;
+      throw error;
+    }
   }
-}
-
 
   async function changeDelivery(id, delivery) {
     try {
@@ -147,9 +145,7 @@ async function cancelProforma(id) {
       <div className="adminhead">
         <div>
           <h2>Gestión de proformas</h2>
-          <p>
-            Administra las proformas de la tienda y del administrador.
-          </p>
+          <p>Administra las proformas de la tienda y del administrador.</p>
         </div>
 
         <button className="primary" onClick={newProforma}>

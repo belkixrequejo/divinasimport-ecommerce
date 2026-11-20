@@ -484,3 +484,232 @@
     flex: 1;
   }
 }
+
+.saleDetailActions {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-top: 20px;
+}
+
+.saleDetailDownload {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 9px;
+  padding: 13px 16px;
+  border: none;
+  border-radius: 9px;
+  background: #884798;
+  color: white;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.saleDetailDownload:hover {
+  background: #71377f;
+}
+
+.saleDetailDownload:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+/* Área de generación de imagen */
+.saleReceiptCapture {
+  position: fixed;
+  left: -10000px;
+  top: 0;
+  width: 700px;
+  pointer-events: none;
+}
+
+.saleReceipt {
+  width: 700px;
+  box-sizing: border-box;
+  padding: 42px;
+  background: #fff;
+  color: #29232d;
+  font-family: Arial, sans-serif;
+}
+
+.saleReceiptBrand {
+  text-align: center;
+  padding-bottom: 24px;
+}
+
+.saleReceiptBrandName {
+  font-size: 39px;
+  font-weight: 900;
+  letter-spacing: 1px;
+  color: #884798;
+}
+
+.saleReceiptBrandName span {
+  color: #ff920c;
+}
+
+.saleReceiptBrand p {
+  font-size: 12px;
+  letter-spacing: 3px;
+  color: #777;
+  margin: 5px 0 17px;
+}
+
+.saleReceiptAccent {
+  width: 90px;
+  height: 5px;
+  background: #ff920c;
+  border-radius: 5px;
+  margin: 0 auto 22px;
+}
+
+.saleReceiptBrand h2 {
+  font-size: 19px;
+  letter-spacing: 2px;
+  margin: 0 0 12px;
+  color: #333;
+}
+
+.saleReceiptStatus {
+  display: inline-block;
+  background: #edf8ef;
+  color: #278343;
+  padding: 7px 14px;
+  border-radius: 20px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 1px;
+}
+
+.saleReceiptNumber {
+  background: #f8f3fa;
+  border: 1px solid #eaddec;
+  border-radius: 10px;
+  padding: 15px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 24px;
+}
+
+.saleReceiptNumber span {
+  color: #777;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.saleReceiptNumber strong {
+  color: #884798;
+  font-size: 18px;
+}
+
+.saleReceiptBlock {
+  margin-bottom: 24px;
+}
+
+.saleReceiptBlock h3 {
+  color: #884798;
+  font-size: 13px;
+  border-bottom: 2px solid #f0e6f2;
+  padding-bottom: 9px;
+  margin: 0 0 12px;
+  letter-spacing: 1px;
+}
+
+.saleReceiptBlock p {
+  font-size: 13px;
+  margin: 7px 0;
+  line-height: 1.5;
+}
+
+.saleReceiptTableHeader,
+.saleReceiptProduct {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 65px 105px;
+  gap: 12px;
+  align-items: start;
+}
+
+.saleReceiptTableHeader {
+  background: #884798;
+  color: #fff;
+  padding: 12px;
+  font-size: 11px;
+  font-weight: 700;
+  border-radius: 7px;
+}
+
+.saleReceiptTableHeader span:nth-child(2),
+.saleReceiptProduct > strong:nth-child(2) {
+  text-align: center;
+}
+
+.saleReceiptTableHeader span:last-child,
+.saleReceiptProduct > strong:last-child {
+  text-align: right;
+}
+
+.saleReceiptProduct {
+  padding: 13px 12px;
+  border-bottom: 1px solid #eee;
+  font-size: 12px;
+}
+
+.saleReceiptProduct > div {
+  display: grid;
+  gap: 5px;
+}
+
+.saleReceiptProduct > div strong {
+  font-size: 13px;
+}
+
+.saleReceiptProduct small {
+  color: #777;
+  font-size: 11px;
+}
+
+.saleReceiptProduct > strong {
+  font-size: 12px;
+}
+
+.saleReceiptFinalTotal {
+  margin-top: 25px;
+  padding: 20px;
+  border-radius: 10px;
+  background: #f8f3fa;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  color: #884798;
+}
+
+.saleReceiptFinalTotal span {
+  font-size: 15px;
+  font-weight: 800;
+}
+
+.saleReceiptFinalTotal strong {
+  font-size: 29px;
+}
+
+.saleReceiptFooter {
+  text-align: center;
+  border-top: 1px dashed #ddd;
+  margin-top: 30px;
+  padding-top: 22px;
+}
+
+.saleReceiptFooter strong {
+  color: #884798;
+  font-size: 16px;
+}
+
+.saleReceiptFooter p {
+  color: #888;
+  font-size: 11px;
+  margin-top: 8px;
+}
+
