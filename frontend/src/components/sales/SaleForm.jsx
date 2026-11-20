@@ -27,6 +27,10 @@ export default function SaleForm({ onClose, onSuccess }) {
   const [quantity, setQuantity] = useState(1);
   const [cart, setCart] = useState([]);
 
+  const [deliveryType, setDeliveryType] = useState("LOCAL");
+  const [shippingCost, setShippingCost] = useState("0");
+  const [collectionType, setCollectionType] = useState("PREPAID");
+
   const [paymentMethod, setPaymentMethod] = useState("EFECTIVO");
   const [paymentReference, setPaymentReference] = useState("");
 
@@ -147,7 +151,13 @@ export default function SaleForm({ onClose, onSuccess }) {
     };
   });
 
-  const total = cartWithPrices.reduce((sum, item) => sum + item.lineTotal, 0);
+  const subtotal = cartWithPrices.reduce((sum, item) => sum + item.lineTotal, 0);
+  const shipping = deliveryType === "ENVIO" ? Math.max(0, Number(shippingCost) || 0) : 0;
+  const total = subtotal + shipping;
+  const amountToDivinas =
+    deliveryType !== "ENVIO" || collectionType === "PREPAID" ? total : shipping;
+  const amountToCarrier =
+    deliveryType === "ENVIO" && collectionType === "CONTRA_ENTREGA" ? subtotal : 0;
 
   const money = (value) => `$${Number(value || 0).toFixed(2)}`;
 
@@ -267,6 +277,11 @@ export default function SaleForm({ onClose, onSuccess }) {
       customerPayload = customerData;
     }
 
+    if (deliveryType === "ENVIO" && (!Number.isFinite(Number(shippingCost)) || Number(shippingCost) < 0)) {
+      window.notify?.("Ingresa un valor de envío válido", "warning");
+      return;
+    }
+
     if (paymentMethod === "TRANSFERENCIA" && !paymentReference.trim()) {
       window.notify?.("Ingresa la referencia de la transferencia", "warning");
       return;
@@ -298,6 +313,9 @@ export default function SaleForm({ onClose, onSuccess }) {
         p_payment_method: paymentMethod,
         p_payment_reference: paymentReference.trim() || null,
         p_created_by: user.id,
+        p_delivery_type: deliveryType,
+        p_shipping_cost: shipping,
+        p_collection_type: deliveryType === "ENVIO" ? collectionType : "PREPAID",
       });
 
       if (error) throw error;
@@ -594,7 +612,48 @@ export default function SaleForm({ onClose, onSuccess }) {
         </div>
 
         <div className="saleFormSection">
-          <h3>3. Pago</h3>
+          <h3>3. Entrega y envío</h3>
+          <select
+            value={deliveryType}
+            onChange={(e) => {
+              setDeliveryType(e.target.value);
+              if (e.target.value !== "ENVIO") {
+                setShippingCost("0");
+                setCollectionType("PREPAID");
+              }
+            }}
+          >
+            <option value="LOCAL">Venta local / entrega en tienda</option>
+            <option value="ENVIO">Envío por transportadora</option>
+            <option value="RETIRO">Retiro por el cliente</option>
+          </select>
+
+          {deliveryType === "ENVIO" && (
+            <>
+              <label>Valor del envío ($)</label>
+              <input
+                type="number"
+                min="0"
+                step="0.01"
+                value={shippingCost}
+                onChange={(e) => setShippingCost(e.target.value)}
+                placeholder="Ej. 6.00"
+                required
+              />
+              <label>¿Quién cobra el valor de los productos?</label>
+              <select
+                value={collectionType}
+                onChange={(e) => setCollectionType(e.target.value)}
+              >
+                <option value="PREPAID">Pago anticipado: DIVINAS cobra productos + envío</option>
+                <option value="CONTRA_ENTREGA">Contra entrega: transportadora cobra los productos</option>
+              </select>
+            </>
+          )}
+        </div>
+
+        <div className="saleFormSection">
+          <h3>4. Pago a DIVINAS IMPORT</h3>
 
           <select
             value={paymentMethod}
@@ -603,7 +662,6 @@ export default function SaleForm({ onClose, onSuccess }) {
             <option value="EFECTIVO">Efectivo</option>
             <option value="TRANSFERENCIA">Transferencia</option>
             <option value="TARJETA">Tarjeta</option>
-            <option value="CONTRA_ENTREGA">Contra entrega</option>
           </select>
 
           {paymentMethod === "TRANSFERENCIA" && (
@@ -628,8 +686,25 @@ export default function SaleForm({ onClose, onSuccess }) {
                 : "No aplica"}
             </strong>
           </div>
+          <div>
+            <span>Subtotal de productos</span>
+            <strong>{money(subtotal)}</strong>
+          </div>
+          {deliveryType === "ENVIO" && (
+            <>
+              <div><span>Envío</span><strong>{money(shipping)}</strong></div>
+              <div>
+                <span>Modalidad de cobro</span>
+                <strong>{collectionType === "PREPAID" ? "Pago anticipado" : "Contra entrega"}</strong>
+              </div>
+              <div><span>Recibe DIVINAS IMPORT</span><strong>{money(amountToDivinas)}</strong></div>
+              {amountToCarrier > 0 && (
+                <div><span>Cobra la transportadora</span><strong>{money(amountToCarrier)}</strong></div>
+              )}
+            </>
+          )}
           <div className="saleFormGrandTotal">
-            <span>Total a pagar</span>
+            <span>Total de la operación</span>
             <strong>{money(total)}</strong>
           </div>
         </div>

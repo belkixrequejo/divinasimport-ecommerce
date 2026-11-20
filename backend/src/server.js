@@ -1,4 +1,3 @@
-
 import "dotenv/config";
 import express from "express";
 import cors from "cors";
@@ -23,7 +22,7 @@ if (!url || !service || !anon) {
 
 const db = createClient(
   url || "https://placeholder.supabase.co",
-  service || "placeholder"
+  service || "placeholder",
 );
 
 // ========================================
@@ -71,7 +70,7 @@ async function auth(req, res, next) {
 app.get("/api/health", (req, res) => {
   res.json({
     ok: true,
-    service: "DIVINAS IMPORT API"
+    service: "DIVINAS IMPORT API",
   });
 });
 
@@ -90,13 +89,13 @@ app.post("/api/store/proformas", async (req, res) => {
       !items.length
     ) {
       return res.status(400).json({
-        error: "Ingresa nombres, ciudad y al menos un producto"
+        error: "Ingresa nombres, ciudad y al menos un producto",
       });
     }
 
     const { data, error } = await db.rpc("create_store_proforma", {
       p_customer: customer,
-      p_items: items
+      p_items: items,
     });
 
     if (error) {
@@ -104,24 +103,23 @@ app.post("/api/store/proformas", async (req, res) => {
         message: error.message,
         details: error.details,
         hint: error.hint,
-        code: error.code
+        code: error.code,
       });
 
       return res.status(400).json({
         error: error.message,
         details: error.details,
         hint: error.hint,
-        code: error.code
+        code: error.code,
       });
     }
 
     res.status(201).json(data);
-
   } catch (e) {
     console.error(e);
 
     res.status(400).json({
-      error: e.message || "No se pudo guardar la proforma"
+      error: e.message || "No se pudo guardar la proforma",
     });
   }
 });
@@ -141,25 +139,24 @@ app.post("/api/store/orders", async (req, res) => {
       !items.length
     ) {
       return res.status(400).json({
-        error: "Datos incompletos"
+        error: "Datos incompletos",
       });
     }
 
     const { data, error } = await db.rpc("create_store_order", {
       p_customer: customer,
       p_items: items,
-      p_payment_method: payment_method || "PENDIENTE"
+      p_payment_method: payment_method || "PENDIENTE",
     });
 
     if (error) throw error;
 
     res.status(201).json(data);
-
   } catch (e) {
     console.error(e);
 
     res.status(400).json({
-      error: e.message || "No se pudo crear pedido"
+      error: e.message || "No se pudo crear pedido",
     });
   }
 });
@@ -170,25 +167,16 @@ app.post("/api/store/orders", async (req, res) => {
 
 app.post("/api/admin/proformas", auth, async (req, res) => {
   try {
-    const {
-      customer,
-      items,
-      delivery_type,
-      shipping_cost,
-      collection_type,
-    } = req.body;
+    const { customer, items, delivery_type, shipping_cost, collection_type } =
+      req.body;
 
     const delivery = delivery_type || "POR_DEFINIR";
 
     const shipping =
-      delivery === "ENVIO"
-        ? Math.max(0, Number(shipping_cost) || 0)
-        : 0;
+      delivery === "ENVIO" ? Math.max(0, Number(shipping_cost) || 0) : 0;
 
     const collection =
-      delivery === "ENVIO"
-        ? collection_type || "PREPAID"
-        : "PREPAID";
+      delivery === "ENVIO" ? collection_type || "PREPAID" : "PREPAID";
 
     if (!["PREPAID", "CONTRA_ENTREGA"].includes(collection)) {
       return res.status(400).json({
@@ -222,7 +210,6 @@ app.post("/api/admin/proformas", auth, async (req, res) => {
       shipping_cost: shipping,
       collection_type: collection,
     });
-
   } catch (e) {
     console.error("ERROR CREANDO PROFORMA:", e);
 
@@ -232,7 +219,6 @@ app.post("/api/admin/proformas", auth, async (req, res) => {
   }
 });
 
-
 // ========================================
 // ACTUALIZAR PROFORMA PENDIENTE
 // ========================================
@@ -241,13 +227,8 @@ app.put("/api/admin/proformas/:id", auth, async (req, res) => {
   try {
     const { id } = req.params;
 
-    const {
-      customer,
-      items,
-      delivery_type,
-      shipping_cost,
-      collection_type,
-    } = req.body || {};
+    const { customer, items, delivery_type, shipping_cost, collection_type } =
+      req.body || {};
 
     if (!id) {
       return res.status(400).json({
@@ -284,14 +265,10 @@ app.put("/api/admin/proformas/:id", auth, async (req, res) => {
     const delivery = delivery_type || "POR_DEFINIR";
 
     const shipping =
-      delivery === "ENVIO"
-        ? Math.max(0, Number(shipping_cost) || 0)
-        : 0;
+      delivery === "ENVIO" ? Math.max(0, Number(shipping_cost) || 0) : 0;
 
     const collection =
-      delivery === "ENVIO"
-        ? collection_type || "PREPAID"
-        : "PREPAID";
+      delivery === "ENVIO" ? collection_type || "PREPAID" : "PREPAID";
 
     if (!["PREPAID", "CONTRA_ENTREGA"].includes(collection)) {
       return res.status(400).json({
@@ -350,7 +327,6 @@ app.put("/api/admin/proformas/:id", auth, async (req, res) => {
         collection_type: collection,
       },
     });
-
   } catch (e) {
     console.error("ERROR INESPERADO AL ACTUALIZAR PROFORMA:", e);
 
@@ -360,25 +336,20 @@ app.put("/api/admin/proformas/:id", auth, async (req, res) => {
   }
 });
 
- // ========================================
- // CAMBIAR TIPO DE ENTREGA
- // ========================================
+// ========================================
+// CAMBIAR TIPO DE ENTREGA
+// ========================================
 
 app.patch("/api/admin/proformas/:id/delivery", auth, async (req, res) => {
   try {
     const { id } = req.params;
     const { delivery_type } = req.body;
 
-    const allowedTypes = [
-      "POR_DEFINIR",
-      "ENVIO",
-      "RETIRO",
-      "LOCAL"
-    ];
+    const allowedTypes = ["POR_DEFINIR", "ENVIO", "RETIRO", "LOCAL"];
 
     if (!allowedTypes.includes(delivery_type)) {
       return res.status(400).json({
-        error: "Tipo de entrega no válido."
+        error: "Tipo de entrega no válido.",
       });
     }
 
@@ -394,25 +365,23 @@ app.patch("/api/admin/proformas/:id/delivery", auth, async (req, res) => {
 
     if (!data) {
       return res.status(404).json({
-        error: "No se encontró una proforma pendiente para actualizar."
+        error: "No se encontró una proforma pendiente para actualizar.",
       });
     }
 
     return res.json({
       success: true,
       message: "Tipo de entrega actualizado.",
-      data
+      data,
     });
-
   } catch (e) {
     console.error("ERROR CAMBIANDO ENTREGA:", e);
 
     return res.status(400).json({
-      error: e.message
+      error: e.message,
     });
   }
 });
-
 
 // ========================================
 // ANULAR PROFORMA
@@ -434,25 +403,23 @@ app.patch("/api/admin/proformas/:id/cancel", auth, async (req, res) => {
 
     if (!data) {
       return res.status(404).json({
-        error: "No se encontró una proforma pendiente para anular."
+        error: "No se encontró una proforma pendiente para anular.",
       });
     }
 
     return res.json({
       success: true,
       message: "Proforma anulada correctamente.",
-      data
+      data,
     });
-
   } catch (e) {
     console.error("ERROR ANULANDO PROFORMA:", e);
 
     return res.status(400).json({
-      error: e.message
+      error: e.message,
     });
   }
 });
-
 
 // ========================================
 // CONFIRMAR PROFORMA COMO VENTA
@@ -462,18 +429,17 @@ app.post("/api/admin/proformas/:id/confirm", auth, async (req, res) => {
   try {
     const { data, error } = await db.rpc("confirm_proforma_as_sale", {
       p_proforma_id: req.params.id,
-      p_user_id: req.user.id
+      p_user_id: req.user.id,
     });
 
     if (error) throw error;
 
     res.json(data);
-
   } catch (e) {
     console.error("ERROR CONFIRMANDO PROFORMA:", e);
 
     res.status(400).json({
-      error: e.message
+      error: e.message,
     });
   }
 });
@@ -490,7 +456,7 @@ app.get("/api/admin/proformas", auth, async (req, res) => {
 
   if (error) {
     return res.status(400).json({
-      error: error.message
+      error: error.message,
     });
   }
 
@@ -509,7 +475,7 @@ app.get("/api/admin/sales", auth, async (req, res) => {
 
   if (error) {
     return res.status(400).json({
-      error: error.message
+      error: error.message,
     });
   }
 
@@ -528,7 +494,7 @@ app.get("/api/admin/customers", auth, async (req, res) => {
 
   if (error) {
     return res.status(400).json({
-      error: error.message
+      error: error.message,
     });
   }
 
@@ -543,8 +509,154 @@ app.use((err, req, res, next) => {
   console.error("ERROR GENERAL:", err);
 
   res.status(500).json({
-    error: "Error interno"
+    error: "Error interno",
   });
+});
+
+// ========================================
+// VALIDAR ADMINISTRADOR
+// ========================================
+
+const adminOnly = (req, res, next) => {
+  if (req.profile?.role !== "ADMIN") {
+    return res.status(403).json({
+      error: "No tienes permisos para realizar esta operación",
+    });
+  }
+
+  next();
+};
+
+// ========================================
+// OBTENER USUARIOS
+// ========================================
+
+app.get("/api/admin/users", auth, adminOnly, async (req, res) => {
+  try {
+    const { data, error } = await db
+      .from("profiles")
+      .select("id, full_name, email, role, is_active, created_at")
+      .order("created_at", { ascending: false });
+
+    if (error) throw error;
+
+    res.json(data);
+  } catch (e) {
+    console.error("ERROR OBTENIENDO USUARIOS:", e);
+
+    res.status(400).json({
+      error: e.message,
+    });
+  }
+});
+
+// ========================================
+// CREAR USUARIO
+// ========================================
+
+app.post("/api/admin/users", auth, adminOnly, async (req, res) => {
+  try {
+    const { full_name, email, password, role } = req.body;
+
+    if (!full_name || !email || !password || !role) {
+      throw new Error("Todos los campos son obligatorios");
+    }
+
+    if (!["ADMIN", "VENDEDORA"].includes(role)) {
+      throw new Error("El rol seleccionado no es válido");
+    }
+
+    // Crear usuario en Supabase Auth
+    const { data: authData, error: authError } = await db.auth.admin.createUser(
+      {
+        email,
+        password,
+        email_confirm: true,
+      },
+    );
+
+    if (authError) throw authError;
+
+    // Crear perfil
+    // Actualizar perfil creado automáticamente por el trigger
+    const { data, error } = await db
+      .from("profiles")
+      .update({
+        full_name,
+        email,
+        role,
+        is_active: true,
+      })
+      .eq("id", authData.user.id)
+      .select()
+      .single();
+
+    if (error) {
+      await db.auth.admin.deleteUser(authData.user.id);
+      throw error;
+    }
+
+    res.status(201).json(data);
+  } catch (e) {
+    console.error("ERROR CREANDO USUARIO:", e);
+
+    res.status(400).json({
+      error: e.message,
+    });
+  }
+});
+
+// ========================================
+// ACTUALIZAR USUARIO
+// ========================================
+
+app.put("/api/admin/users/:id", auth, adminOnly, async (req, res) => {
+  try {
+    const { full_name, email, role, is_active } = req.body;
+    const userId = req.params.id;
+
+    if (!["ADMIN", "VENDEDORA"].includes(role)) {
+      throw new Error("El rol seleccionado no es válido");
+    }
+
+    if (userId === req.user.id && (role !== "ADMIN" || is_active === false)) {
+      throw new Error(
+        "No puedes quitarte tus propios permisos de administrador ni desactivar tu usuario",
+      );
+    }
+
+    // Actualizar correo en Supabase Auth
+    if (email) {
+      const { error: authError } = await db.auth.admin.updateUserById(userId, {
+        email,
+      });
+
+      if (authError) throw authError;
+    }
+
+    // Actualizar perfil
+    const { data, error } = await db
+      .from("profiles")
+      .update({
+        full_name,
+        email,
+        role,
+        is_active,
+      })
+      .eq("id", userId)
+      .select()
+      .single();
+
+    if (error) throw error;
+
+    res.json(data);
+  } catch (e) {
+    console.error("ERROR ACTUALIZANDO USUARIO:", e);
+
+    res.status(400).json({
+      error: e.message,
+    });
+  }
 });
 
 // ========================================

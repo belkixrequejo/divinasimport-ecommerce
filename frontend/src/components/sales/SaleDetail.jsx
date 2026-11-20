@@ -69,6 +69,25 @@ export default function SaleDetail({ sale, customer, onClose }) {
   };
 
   const money = (value) => `$${Number(value || 0).toFixed(2)}`;
+  const productsSubtotal = Number(
+    sale.subtotal ?? items.reduce((sum, item) => sum + Number(item.line_total || 0), 0)
+  );
+  const shippingCost = Number(sale.shipping_cost || 0);
+  const deliveryType = sale.delivery_type || "LOCAL";
+  const collectionType = sale.collection_type || "PREPAID";
+  const amountToDivinas =
+    deliveryType === "ENVIO" && collectionType === "CONTRA_ENTREGA"
+      ? shippingCost
+      : Number(sale.total || 0);
+  const amountToCarrier =
+    deliveryType === "ENVIO" && collectionType === "CONTRA_ENTREGA"
+      ? productsSubtotal
+      : 0;
+  const deliveryLabel =
+    deliveryType === "ENVIO" ? "Envío por transportadora" :
+    deliveryType === "RETIRO" ? "Retiro por el cliente" : "Entrega local / tienda";
+  const collectionLabel =
+    collectionType === "CONTRA_ENTREGA" ? "Contra entrega" : "Pago anticipado";
 
   const productById = new Map(products.map((p) => [p.id, p]));
   const variantById = new Map(variants.map((v) => [v.id, v]));
@@ -160,6 +179,13 @@ export default function SaleDetail({ sale, customer, onClose }) {
             <span>Referencia de pago</span>
             <strong>{sale.payment_reference || "No registrada"}</strong>
           </div>
+          <div><span>Tipo de entrega</span><strong>{deliveryLabel}</strong></div>
+          {deliveryType === "ENVIO" && (
+            <>
+              <div><span>Modalidad de cobro</span><strong>{collectionLabel}</strong></div>
+              <div><span>Valor del envío</span><strong>{money(shippingCost)}</strong></div>
+            </>
+          )}
         </div>
 
         <div className="saleDetailItems">
@@ -212,12 +238,18 @@ export default function SaleDetail({ sale, customer, onClose }) {
         </div>
 
         <div className="saleDetailTotal">
-          <span>
-            <Receipt size={18} />
-            Total de la venta
-          </span>
+          <span><Receipt size={18} /> Total de la operación</span>
           <strong>{money(sale.total)}</strong>
         </div>
+        {deliveryType === "ENVIO" && (
+          <div className="saleDetailMetadata">
+            <div><span>Subtotal de productos</span><strong>{money(productsSubtotal)}</strong></div>
+            <div><span>Recibe DIVINAS IMPORT</span><strong>{money(amountToDivinas)}</strong></div>
+            {amountToCarrier > 0 && (
+              <div><span>Cobra la transportadora</span><strong>{money(amountToCarrier)}</strong></div>
+            )}
+          </div>
+        )}
 
         <div className="saleDetailActions">
           <button
@@ -289,6 +321,22 @@ export default function SaleDetail({ sale, customer, onClose }) {
             </div>
 
             <div className="saleReceiptBlock">
+              <h3>ENTREGA Y COBRO</h3>
+              <p><strong>Tipo de entrega:</strong> {deliveryLabel}</p>
+              {deliveryType === "ENVIO" && (
+                <>
+                  <p><strong>Modalidad:</strong> {collectionLabel}</p>
+                  <p><strong>Subtotal de productos:</strong> {money(productsSubtotal)}</p>
+                  <p><strong>Valor del envío:</strong> {money(shippingCost)}</p>
+                  <p><strong>Recibe DIVINAS IMPORT:</strong> {money(amountToDivinas)}</p>
+                  {amountToCarrier > 0 && (
+                    <p><strong>Paga a la transportadora:</strong> {money(amountToCarrier)}</p>
+                  )}
+                </>
+              )}
+            </div>
+
+            <div className="saleReceiptBlock">
               <h3>DETALLE DE PRODUCTOS</h3>
 
               <div className="saleReceiptTableHeader">
@@ -332,7 +380,7 @@ export default function SaleDetail({ sale, customer, onClose }) {
             </div>
 
             <div className="saleReceiptFinalTotal">
-              <span>TOTAL A PAGAR</span>
+              <span>TOTAL DE LA OPERACIÓN</span>
               <strong>{money(sale.total)}</strong>
             </div>
 

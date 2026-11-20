@@ -2593,3 +2593,294 @@ button {
   border-radius: 8px;
   background: #fff;
 }
+
+/* DASHBOARD DIVINAS IMPORT */
+
+.dashboard {
+  display: flex;
+  flex-direction: column;
+  gap: 22px;
+}
+
+.dashboardWelcome {
+  background: linear-gradient(110deg, #321d39, #884798);
+  color: white;
+  padding: 28px;
+  border-radius: 15px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 15px;
+}
+
+.dashboardWelcome span {
+  color: #e9c5f0;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 2px;
+}
+
+.dashboardWelcome h2 {
+  font: 700 25px "Playfair Display";
+  margin: 10px 0;
+}
+
+.dashboardWelcome p {
+  color: #eaddec;
+  font-size: 13px;
+  margin: 0;
+}
+
+.dashboardDate {
+  background: #ffffff15;
+  border: 1px solid #ffffff40;
+  padding: 14px;
+  border-radius: 10px;
+}
+
+.dashboardDate small,
+.dashboardDate strong {
+  display: block;
+}
+
+.dashboardDate small {
+  color: #e9c5f0;
+  font-size: 10px;
+}
+
+.dashboardDate strong {
+  margin-top: 6px;
+  font-size: 13px;
+  text-transform: capitalize;
+}
+
+.dashboardStats {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 15px;
+}
+
+.dashboardStat {
+  background: white;
+  border: 1px solid #eee8ef;
+  border-radius: 13px;
+  padding: 20px;
+  box-shadow: 0 3px 12px #24132908;
+}
+
+.dashboardStat span {
+  display: block;
+  color: #884798;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: .5px;
+}
+
+.dashboardStat strong {
+  display: block;
+  color: #321d39;
+  font-size: 30px;
+  margin: 9px 0 4px;
+}
+
+.dashboardStat small {
+  color: #958a98;
+  font-size: 11px;
+}
+
+.dashboardBottom {
+  display: grid;
+  grid-template-columns: 1.4fr 1fr;
+  gap: 18px;
+}
+
+.dashboardInfo {
+  background: white;
+  border: 1px solid #eee8ef;
+  border-radius: 13px;
+  padding: 23px;
+}
+
+.dashboardInfo h3 {
+  color: #38213d;
+  font: 700 20px "Playfair Display";
+  margin: 0 0 8px;
+}
+
+.dashboardInfo p {
+  color: #958a98;
+  font-size: 12px;
+  margin-bottom: 20px;
+}
+
+.dashboardActions {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 12px;
+}
+
+.dashboardActions button {
+  background: #f7f0f8;
+  color: #884798;
+  padding: 14px;
+  border-radius: 9px;
+  font-size: 12px;
+  font-weight: 700;
+  text-align: left;
+}
+
+.dashboardActions button:hover {
+  background: #884798;
+  color: white;
+}
+
+.dashboardSummary > div {
+  display: flex;
+  justify-content: space-between;
+  padding: 14px 0;
+  border-bottom: 1px solid #eee8ef;
+  font-size: 13px;
+}
+
+.dashboardSummary > div span {
+  color: #766d79;
+}
+
+.dashboardSummary > div strong {
+  color: #884798;
+}
+
+@media (max-width: 900px) {
+  .dashboardStats {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .dashboardBottom {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 550px) {
+  .dashboardWelcome {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .dashboardDate {
+    width: 100%;
+  }
+
+  .dashboardStats {
+    gap: 10px;
+  }
+
+  .dashboardStat {
+    padding: 13px;
+  }
+
+  .dashboardStat strong {
+    font-size: 24px;
+  }
+
+  .dashboardActions {
+    grid-template-columns: 1fr;
+  }
+}
+.dashboardStat {
+  background: white;
+  border: 1px solid #eee8ef;
+  border-top: 3px solid #884798;
+  border-radius: 13px;
+  padding: 20px;
+  box-shadow: 0 3px 12px #24132908;
+  transition: .2s ease;
+}
+
+.dashboardStat:hover {
+  transform: translateY(-3px);
+  border-top-color: #ff920c;
+  box-shadow: 0 7px 18px #88479818;
+}
+
+.dashboardStat span {
+  display: block;
+  color: #884798;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: .5px;
+}
+
+.dashboardStat strong {
+  display: block;
+  color: #321d39;
+  font-size: 30px;
+  margin: 9px 0 4px;
+}
+
+/* BOTONES AMARILLO DIVINAS IMPORT */
+
+button:hover:not(:disabled) {
+  background-color: #EAB51B !important;
+  border-color: #EAB51B !important;
+  color: #321D39 !important;
+}
+
+
+/* MENÚ LATERAL DESLIZANTE PARA CELULARES Y TABLETAS */
+@media (max-width: 950px) {
+  .admin {
+    display: block !important;
+    min-height: calc(100vh - 68px);
+  }
+
+  .sidebar {
+    position: fixed !important;
+    top: 0 !important;
+    left: 0 !important;
+    bottom: 0 !important;
+    width: 270px !important;
+    max-width: 85vw;
+    height: 100vh !important;
+    height: 100dvh !important;
+    z-index: 1001 !important;
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: stretch;
+    overflow-y: auto !important;
+    padding: 28px 17px !important;
+    background: #2d1b32 !important;
+    transform: translateX(-100%);
+    transition: transform 0.3s ease;
+    box-shadow: 5px 0 25px #0003;
+  }
+
+  .sidebar.open {
+    transform: translateX(0) !important;
+  }
+
+  .sidebar h3 {
+    display: block !important;
+  }
+
+  .sidebar .logout {
+    display: flex !important;
+    margin-top: auto;
+  }
+
+  .sidebar button {
+    white-space: normal !important;
+    font-size: 14px !important;
+  }
+
+  .sidebarOverlay {
+    position: fixed;
+    inset: 0;
+    z-index: 1000;
+    background: rgba(0, 0, 0, 0.5);
+  }
+
+  .admincontent {
+    width: 100%;
+    padding: 20px 14px;
+  }
+}

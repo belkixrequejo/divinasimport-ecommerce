@@ -1,0 +1,291 @@
+.inventoryPanel {
+  min-width: 0;
+}
+.inventoryHeading {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 18px;
+  margin-bottom: 22px;
+}
+.inventoryHeading h2 {
+  margin: 0 0 6px;
+  color: #884798;
+}
+.inventoryHeading p {
+  margin: 0;
+  color: #766d79;
+  font-size: 13px;
+}
+.inventoryHeaderActions,
+.inventoryModalActions {
+  display: flex;
+  gap: 9px;
+  flex-wrap: wrap;
+}
+.inventorySecondary,
+.inventoryAction,
+.inventorySubmit {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  border-radius: 9px;
+  padding: 10px 13px;
+  font-size: 13px;
+  font-weight: 700;
+}
+.inventorySecondary {
+  background: #f5eef7;
+  color: #884798;
+  border: 1px solid #eaddec;
+}
+.inventoryStats {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 12px;
+  margin: 20px 0;
+}
+.inventoryStats > div {
+  padding: 16px;
+  border: 1px solid #eee5f0;
+  border-radius: 12px;
+  background: #fff;
+}
+.inventoryStats span {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  color: #766d79;
+  font-size: 12px;
+}
+.inventoryStats span svg {
+  color: #884798;
+}
+.inventoryStats strong {
+  display: block;
+  margin-top: 9px;
+  color: #33243a;
+  font-size: 25px;
+}
+.inventoryToolbar {
+  display: flex;
+  gap: 12px;
+  margin: 20px 0;
+}
+.inventorySearch {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  flex: 1;
+  min-width: 180px;
+  border: 1px solid #e8dfea;
+  border-radius: 10px;
+  padding: 0 12px;
+  color: #884798;
+}
+.inventorySearch input {
+  width: 100%;
+  min-height: 43px;
+  border: 0;
+  outline: 0;
+  background: transparent;
+}
+.inventoryToolbar select,
+.inventoryModal select,
+.inventoryModal input,
+.inventoryModal textarea {
+  border: 1px solid #e4d9e7;
+  border-radius: 9px;
+  padding: 10px 12px;
+  background: #fff;
+  color: #35283a;
+}
+.inventoryTableWrap {
+  width: 100%;
+  overflow-x: auto;
+}
+.inventoryTable {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+.inventoryTable th {
+  padding: 12px 10px;
+  text-align: left;
+  color: #766d79;
+  background: #faf7fb;
+  font-size: 11px;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+.inventoryTable td {
+  padding: 13px 10px;
+  border-bottom: 1px solid #f0eaf1;
+  color: #514657;
+  white-space: nowrap;
+}
+.inventoryTable td:first-child {
+  white-space: normal;
+  min-width: 150px;
+}
+.inventoryTable td strong,
+.inventoryTable td small {
+  display: block;
+}
+.inventoryTable td small {
+  margin-top: 4px;
+  color: #938798;
+  font-size: 11px;
+}
+.inventoryStatus {
+  display: inline-block;
+  padding: 5px 9px;
+  border-radius: 20px;
+  font-size: 11px;
+  font-weight: 700;
+}
+.inventoryStatus.isAvailable {
+  color: #167548;
+  background: #e9f7ef;
+}
+.inventoryStatus.isLow {
+  color: #9a6500;
+  background: #fff4d8;
+}
+.inventoryStatus.isOut {
+  color: #b42318;
+  background: #ffeded;
+}
+.inventoryAction {
+  background: #f5eef7;
+  color: #884798;
+  padding: 8px 10px;
+}
+.inventoryEmpty {
+  padding: 28px;
+  text-align: center;
+  color: #827687;
+  background: #faf7fb;
+  border-radius: 10px;
+}
+.inventoryError {
+  margin: 12px 0;
+  padding: 11px 13px;
+  border-radius: 9px;
+  color: #a32626;
+  background: #fff0f0;
+  font-size: 13px;
+}
+.inventoryHistory {
+  margin-top: 28px;
+}
+.inventoryHistory h3 {
+  color: #884798;
+}
+.inventoryHistory > p {
+  color: #766d79;
+  font-size: 13px;
+}
+.inventoryModalOverlay {
+  position: fixed;
+  inset: 0;
+  z-index: 100000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 18px;
+  background: rgba(25, 15, 29, 0.58);
+}
+.inventoryModal {
+  position: relative;
+  width: min(100%, 490px);
+  max-height: 90vh;
+  overflow: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 27px;
+  border-radius: 16px;
+  background: #fff;
+  box-shadow: 0 18px 55px #0003;
+}
+.inventoryModal h3 {
+  margin: 0;
+  color: #884798;
+  font-size: 21px;
+}
+.inventoryModal label {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  color: #514657;
+  font-size: 13px;
+  font-weight: 700;
+}
+.inventoryModal input,
+.inventoryModal select,
+.inventoryModal textarea {
+  width: 100%;
+  box-sizing: border-box;
+  font: inherit;
+  font-weight: 400;
+}
+.inventorySelected,
+.inventoryCurrent {
+  margin: 0;
+  color: #766d79;
+  font-size: 13px;
+}
+.inventoryCurrent strong {
+  color: #884798;
+}
+.inventoryClose {
+  position: absolute;
+  top: 16px;
+  right: 16px;
+  display: grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  background: #f5eef7;
+  color: #884798;
+}
+.inventoryModalActions {
+  justify-content: flex-end;
+  margin-top: 8px;
+}
+.inventorySubmit {
+  background: #884798;
+  color: #fff;
+}
+.inventorySubmit:disabled {
+  opacity: 0.6;
+  cursor: wait;
+}
+@media (max-width: 850px) {
+  .inventoryStats {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .inventoryHeading {
+    flex-direction: column;
+  }
+}
+@media (max-width: 560px) {
+  .inventoryToolbar {
+    flex-direction: column;
+  }
+  .inventoryStats {
+    gap: 8px;
+  }
+  .inventoryStats > div {
+    padding: 12px;
+  }
+  .inventoryStats strong {
+    font-size: 21px;
+  }
+  .inventoryHeaderActions {
+    width: 100%;
+  }
+}
