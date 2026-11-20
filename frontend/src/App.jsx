@@ -3,6 +3,7 @@ import { supabase } from "./supabase";
 import Proformas from "./components/proformas/Proformas";
 import Categories from "./components/categories/Categories";
 import Customers from "./components/customers/Customers";
+import Sales from "./components/sales/Sales";
 import {
   Search,
   ShoppingBag,
@@ -982,13 +983,14 @@ Quedo pendiente de confirmar envío o entrega.`;
               />
             )}
 
-            {["sales", "inventory", "users"].includes(page) && (
+            {page === "sales" && <Sales />}
+
+            {["inventory", "users"].includes(page) && (
               <div className="panel">
                 <h2>{adminNav.find((x) => x[0] === page)?.[1]}</h2>
                 <p>
                   Este módulo utiliza las tablas y operaciones protegidas de
-                  Supabase. Consulta los registros desde el panel una vez
-                  conectada la base de datos.
+                  Supabase.
                 </p>
               </div>
             )}

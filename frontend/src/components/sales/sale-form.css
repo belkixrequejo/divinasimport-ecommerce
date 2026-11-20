@@ -1,0 +1,344 @@
+
+.saleFormOverlay {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  background: rgba(20, 15, 25, 0.62);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 20px;
+  overflow-y: auto;
+}
+
+.saleFormModal {
+  background: #fff;
+  width: 100%;
+  max-width: 850px;
+  max-height: 94vh;
+  overflow-y: auto;
+  border-radius: 16px;
+  padding: 26px;
+  color: #29232d;
+  box-shadow: 0 15px 50px rgba(0, 0, 0, 0.2);
+}
+
+.saleFormHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 16px;
+  margin-bottom: 24px;
+}
+
+.saleFormHeader h2 {
+  margin: 0 0 6px;
+  font-size: 24px;
+  color: #884798;
+}
+
+.saleFormHeader p {
+  margin: 0;
+  color: #777;
+  font-size: 14px;
+}
+
+.saleFormClose {
+  border: 0;
+  background: #f3edf5;
+  color: #884798;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  font-size: 25px;
+  cursor: pointer;
+}
+
+.saleFormSection {
+  border-top: 1px solid #eee;
+  padding: 20px 0;
+}
+
+.saleFormSection h3 {
+  margin: 0 0 14px;
+  font-size: 16px;
+  color: #884798;
+}
+
+.saleFormModal input,
+.saleFormModal select {
+  width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
+  border: 1px solid #ddd;
+  border-radius: 9px;
+  padding: 11px 12px;
+  background: #fff;
+  color: #333;
+  font: inherit;
+  outline: none;
+}
+
+.saleFormModal input:focus,
+.saleFormModal select:focus {
+  border-color: #884798;
+  box-shadow: 0 0 0 3px rgba(136, 71, 152, 0.1);
+}
+
+.saleFormTabs {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 14px;
+}
+
+.saleFormTabs button {
+  border: 1px solid #e5d8e9;
+  background: #fff;
+  color: #884798;
+  border-radius: 8px;
+  padding: 9px 13px;
+  cursor: pointer;
+}
+
+.saleFormTabs button.active {
+  background: #884798;
+  border-color: #884798;
+  color: #fff;
+}
+
+.saleFormCustomerGrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.saleFormProductSearch {
+  position: relative;
+}
+
+.saleFormProductResults {
+  position: absolute;
+  z-index: 5;
+  top: calc(100% + 4px);
+  left: 0;
+  right: 0;
+  background: #fff;
+  border: 1px solid #e5d8e9;
+  border-radius: 10px;
+  box-shadow: 0 8px 22px rgba(0, 0, 0, 0.1);
+  max-height: 240px;
+  overflow-y: auto;
+}
+
+.saleFormProductResults button {
+  width: 100%;
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 12px;
+  border: 0;
+  border-bottom: 1px solid #f0edf1;
+  background: #fff;
+  text-align: left;
+  cursor: pointer;
+  color: #333;
+}
+
+.saleFormProductResults button:hover {
+  background: #faf5fb;
+}
+
+.saleFormProductResults strong {
+  color: #884798;
+  white-space: nowrap;
+}
+
+.saleFormProductResults p {
+  padding: 12px;
+  margin: 0;
+  color: #777;
+}
+
+.saleFormAddProduct {
+  margin-top: 14px;
+  padding: 15px;
+  background: #faf7fb;
+  border: 1px solid #eee3f1;
+  border-radius: 11px;
+  display: grid;
+  gap: 10px;
+}
+
+.saleFormSelectedProduct {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.saleFormSelectedProduct span,
+.saleFormAddProduct small {
+  color: #777;
+  font-size: 13px;
+}
+
+.saleFormAddControls {
+  display: flex;
+  gap: 10px;
+}
+
+.saleFormAddControls input {
+  max-width: 100px;
+}
+
+.saleFormAddControls button,
+.saleFormSubmit {
+  background: #884798;
+  color: #fff;
+  border: 0;
+  border-radius: 9px;
+  padding: 11px 16px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.saleFormAddControls button:hover,
+.saleFormSubmit:hover {
+  background: #71377f;
+}
+
+.saleFormWarning {
+  color: #a45b00;
+  font-size: 13px;
+  margin: 0;
+}
+
+.saleFormCart {
+  margin-top: 20px;
+}
+
+.saleFormCart h4 {
+  margin: 0 0 10px;
+  font-size: 14px;
+}
+
+.saleFormEmptyCart {
+  color: #888;
+  background: #fafafa;
+  padding: 18px;
+  border-radius: 9px;
+  text-align: center;
+  font-size: 14px;
+}
+
+.saleFormCartItem {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 80px 90px 32px;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 0;
+  border-bottom: 1px solid #eee;
+}
+
+.saleFormCartInfo {
+  display: grid;
+  gap: 3px;
+}
+
+.saleFormCartInfo span,
+.saleFormCartInfo small {
+  color: #777;
+  font-size: 12px;
+}
+
+.saleFormCartItem > strong {
+  text-align: right;
+  color: #884798;
+}
+
+.saleFormCartItem input {
+  padding: 8px;
+}
+
+.saleFormRemove {
+  border: 0;
+  background: #fff0f0;
+  color: #c0392b;
+  border-radius: 7px;
+  height: 32px;
+  font-size: 20px;
+  cursor: pointer;
+}
+
+.saleFormTotal {
+  background: #faf7fb;
+  border-radius: 11px;
+  padding: 16px;
+  display: grid;
+  gap: 12px;
+}
+
+.saleFormTotal > div {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  font-size: 14px;
+}
+
+.saleFormGrandTotal {
+  border-top: 1px solid #e5d8e9;
+  padding-top: 12px;
+  color: #884798;
+  font-size: 18px !important;
+}
+
+.saleFormActions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-top: 20px;
+}
+
+.saleFormCancel {
+  border: 1px solid #ddd;
+  background: #fff;
+  color: #555;
+  border-radius: 9px;
+  padding: 11px 16px;
+  cursor: pointer;
+}
+
+.saleFormSubmit:disabled,
+.saleFormCancel:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+@media (max-width: 600px) {
+  .saleFormOverlay {
+    padding: 8px;
+    align-items: flex-start;
+  }
+
+  .saleFormModal {
+    padding: 18px;
+    max-height: 98vh;
+  }
+
+  .saleFormCustomerGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .saleFormCartItem {
+    grid-template-columns: minmax(0, 1fr) 65px 70px 28px;
+    gap: 6px;
+  }
+
+  .saleFormActions {
+    flex-direction: column-reverse;
+  }
+
+  .saleFormActions button {
+    width: 100%;
+  }
+}
