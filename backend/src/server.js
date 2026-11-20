@@ -270,6 +270,101 @@ app.put("/api/admin/proformas/:id", auth, async (req, res) => {
   }
 });
 
+
+ // ========================================
+ // CAMBIAR TIPO DE ENTREGA
+ // ========================================
+
+app.patch("/api/admin/proformas/:id/delivery", auth, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { delivery_type } = req.body;
+
+    const allowedTypes = [
+      "POR_DEFINIR",
+      "ENVIO",
+      "RETIRO",
+      "LOCAL"
+    ];
+
+    if (!allowedTypes.includes(delivery_type)) {
+      return res.status(400).json({
+        error: "Tipo de entrega no válido."
+      });
+    }
+
+    const { data, error } = await db
+      .from("proformas")
+      .update({ delivery_type })
+      .eq("id", id)
+      .eq("status", "PENDIENTE")
+      .select("id,delivery_type")
+      .maybeSingle();
+
+    if (error) throw error;
+
+    if (!data) {
+      return res.status(404).json({
+        error: "No se encontró una proforma pendiente para actualizar."
+      });
+    }
+
+    return res.json({
+      success: true,
+      message: "Tipo de entrega actualizado.",
+      data
+    });
+
+  } catch (e) {
+    console.error("ERROR CAMBIANDO ENTREGA:", e);
+
+    return res.status(400).json({
+      error: e.message
+    });
+  }
+});
+
+
+// ========================================
+// ANULAR PROFORMA
+// ========================================
+
+app.patch("/api/admin/proformas/:id/cancel", auth, async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    const { data, error } = await db
+      .from("proformas")
+      .update({ status: "ANULADA" })
+      .eq("id", id)
+      .eq("status", "PENDIENTE")
+      .select("id,proforma_number,status")
+      .maybeSingle();
+
+    if (error) throw error;
+
+    if (!data) {
+      return res.status(404).json({
+        error: "No se encontró una proforma pendiente para anular."
+      });
+    }
+
+    return res.json({
+      success: true,
+      message: "Proforma anulada correctamente.",
+      data
+    });
+
+  } catch (e) {
+    console.error("ERROR ANULANDO PROFORMA:", e);
+
+    return res.status(400).json({
+      error: e.message
+    });
+  }
+});
+
+
 // ========================================
 // CONFIRMAR PROFORMA COMO VENTA
 // ========================================

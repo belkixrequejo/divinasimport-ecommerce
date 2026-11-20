@@ -21,39 +21,40 @@ export default function ProformaCard({
     return window.confirm(message);
   }
 
-  async function handleCancel() {
-    if (processing) return;
+  
+async function handleCancel() {
+  if (processing) return;
 
-    try {
-      let accepted = false;
-
-      if (typeof window.confirmAction === "function") {
-        accepted = await window.confirmAction(
-          "¿Deseas anular esta proforma? Se conservará el registro y no se eliminará su historial.",
-          {
-            title: "Anular proforma",
-            confirmText: "Sí, anular",
-            cancelText: "Volver",
-          },
-        );
-      } else {
-        accepted = window.confirm(
-          "¿Deseas anular esta proforma? Se conservará el registro.",
-        );
-      }
-
-      if (!accepted) return;
-
-      setProcessing(true);
-
-      await onCancel(proforma.id);
-    } catch (error) {
-      console.error("Error al anular proforma:", error);
-      window.alert(error.message || "No se pudo anular la proforma.");
-    } finally {
-      setProcessing(false);
+  try {
+    if (typeof window.confirmAction !== "function") {
+      console.error("window.confirmAction no está disponible");
+      window.alert("No está disponible el modal de confirmación.");
+      return;
     }
+
+    const accepted = await window.confirmAction(
+      "¿Deseas anular esta proforma? Se conservará el registro y no se eliminará su historial.",
+      {
+        title: "Anular proforma",
+        confirmText: "Sí, anular",
+        cancelText: "Volver",
+        type: "warning",
+      }
+    );
+
+    if (!accepted) return;
+
+    setProcessing(true);
+    await onCancel(proforma.id);
+
+  } catch (error) {
+    console.error("Error al anular proforma:", error);
+    window.alert(error.message || "No se pudo anular la proforma.");
+  } finally {
+    setProcessing(false);
   }
+}
+
 
   async function handleConfirm() {
     if (processing) return;

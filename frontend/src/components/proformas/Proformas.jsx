@@ -93,22 +93,26 @@ export default function Proformas({
     }
   }
 
-  async function cancelProforma(id) {
-    if (!confirm("¿Deseas anular esta proforma? Se conservará el registro.")) {
-      return;
-    }
+  
+async function cancelProforma(id) {
+  try {
+    await request(`/admin/proformas/${id}/cancel`, {
+      method: "PATCH",
+    });
 
-    try {
-      await request(`/admin/proformas/${id}/cancel`, {
-        method: "PATCH",
-      });
+    window.notify("Proforma anulada correctamente.", "success");
 
-      alert("Proforma anulada correctamente.");
-      await loadProformas();
-    } catch (error) {
-      alert(error.message);
-    }
+    await loadProformas();
+  } catch (error) {
+    window.notify(
+      error.message || "No se pudo anular la proforma.",
+      "error"
+    );
+
+    throw error;
   }
+}
+
 
   async function changeDelivery(id, delivery) {
     try {
