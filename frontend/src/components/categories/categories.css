@@ -1,0 +1,319 @@
+
+.categoriesContainer {
+  padding: 24px;
+  color: #29232d;
+}
+
+.categoriesHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
+  margin-bottom: 24px;
+}
+
+.categoriesHeader h1 {
+  margin: 0 0 6px;
+  font-size: 26px;
+  color: #884798;
+}
+
+.categoriesHeader p {
+  margin: 0;
+  color: #777;
+}
+
+.categoryPrimaryButton {
+  border: none;
+  border-radius: 9px;
+  background: #884798;
+  color: white;
+  padding: 11px 18px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.categoryPrimaryButton:hover {
+  background: #713780;
+}
+
+.categoryPrimaryButton:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.categoriesToolbar {
+  display: flex;
+  gap: 12px;
+  margin-bottom: 20px;
+}
+
+.categoriesToolbar input,
+.categoriesToolbar select {
+  padding: 12px;
+  border: 1px solid #ded9e1;
+  border-radius: 8px;
+  background: white;
+  outline: none;
+}
+
+.categoriesToolbar input {
+  flex: 1;
+}
+
+.categoriesToolbar input:focus,
+.categoriesToolbar select:focus,
+.categoryModal input:focus {
+  border-color: #884798;
+}
+
+.categoriesSummary {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 15px;
+  margin-bottom: 24px;
+}
+
+.categoriesSummary div {
+  background: white;
+  border: 1px solid #eee8f0;
+  border-radius: 10px;
+  padding: 17px;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.categoriesSummary strong {
+  color: #884798;
+  font-size: 24px;
+}
+
+.categoriesSummary span {
+  color: #777;
+  font-size: 13px;
+}
+
+.categoriesGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  gap: 17px;
+}
+
+.categoryCard {
+  background: white;
+  border: 1px solid #eee8f0;
+  border-radius: 12px;
+  padding: 18px;
+  transition: box-shadow 0.2s;
+}
+
+.categoryCard:hover {
+  box-shadow: 0 5px 18px rgba(70, 35, 80, 0.09);
+}
+
+.categoryCardTop {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.categoryIcon {
+  width: 42px;
+  height: 42px;
+  display: grid;
+  place-items: center;
+  border-radius: 10px;
+  background: #f4eaf6;
+  color: #884798;
+  font-size: 24px;
+}
+
+.categoryStatus {
+  padding: 5px 10px;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.categoryStatus.active {
+  color: #247b48;
+  background: #e7f6ed;
+}
+
+.categoryStatus.inactive {
+  color: #777;
+  background: #eee;
+}
+
+.categoryCardInfo {
+  margin: 18px 0;
+}
+
+.categoryCardInfo h3 {
+  margin: 0 0 6px;
+  font-size: 17px;
+}
+
+.categoryCardInfo p {
+  margin: 0;
+  color: #888;
+  font-size: 13px;
+}
+
+.categoryCardDate {
+  color: #999;
+  font-size: 12px;
+  padding-bottom: 15px;
+  border-bottom: 1px solid #eee;
+}
+
+.categoryCardActions {
+  display: flex;
+  gap: 9px;
+  margin-top: 14px;
+}
+
+.categoryCardActions button {
+  flex: 1;
+  padding: 9px 7px;
+  border-radius: 7px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.categoryEditButton {
+  background: #fff3e5;
+  color: #d87908;
+  border: 1px solid #ffdfb6;
+}
+
+.categoryToggleButton {
+  background: #f4eaf6;
+  color: #884798;
+  border: 1px solid #e6d4eb;
+}
+
+.categoriesMessage {
+  text-align: center;
+  padding: 35px;
+  color: #888;
+}
+
+.categoryModalOverlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(25, 15, 30, 0.55);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+  z-index: 1000;
+}
+
+.categoryModal {
+  width: 100%;
+  max-width: 470px;
+  background: white;
+  border-radius: 14px;
+  padding: 24px;
+  box-shadow: 0 15px 50px rgba(0, 0, 0, 0.2);
+}
+
+.categoryModalHeader {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 24px;
+}
+
+.categoryModalHeader h2 {
+  color: #884798;
+  margin: 0 0 7px;
+  font-size: 21px;
+}
+
+.categoryModalHeader p {
+  color: #777;
+  margin: 0;
+  font-size: 13px;
+}
+
+.categoryCloseButton {
+  background: none;
+  border: none;
+  font-size: 28px;
+  color: #777;
+  cursor: pointer;
+}
+
+.categoryModal form label {
+  display: block;
+  margin-bottom: 8px;
+  font-weight: 600;
+  font-size: 14px;
+}
+
+.categoryModal input {
+  box-sizing: border-box;
+  width: 100%;
+  padding: 12px;
+  border: 1px solid #ded9e1;
+  border-radius: 8px;
+  outline: none;
+}
+
+.categoryModalActions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-top: 24px;
+}
+
+.categoryModalActions button {
+  padding: 11px 15px;
+  border-radius: 8px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.categorySecondaryButton {
+  border: 1px solid #ddd;
+  background: white;
+  color: #555;
+}
+
+@media (max-width: 600px) {
+  .categoriesContainer {
+    padding: 15px;
+  }
+
+  .categoriesHeader {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .categoriesToolbar {
+    flex-direction: column;
+  }
+
+  .categoriesSummary {
+    gap: 8px;
+  }
+
+  .categoriesSummary div {
+    padding: 12px;
+  }
+
+  .categoriesSummary strong {
+    font-size: 20px;
+  }
+
+  .categoryModalActions {
+    flex-direction: column-reverse;
+  }
+
+  .categoryModalActions button {
+    width: 100%;
+  }
+}

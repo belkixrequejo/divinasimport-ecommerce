@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { supabase } from "./supabase";
 import Proformas from "./components/proformas/Proformas";
+import Categories from "./components/categories/Categories";
 import {
   Search,
   ShoppingBag,
@@ -910,17 +911,7 @@ Quedo pendiente de confirmar envío o entrega.`;
                 </div>
               </>
             )}
-            {page === "categories" && (
-              <div className="panel">
-                <h2>Categorías configuradas</h2>
-                {categories.map((c) => (
-                  <p>{c.name}</p>
-                ))}
-                <small>
-                  Las categorías iniciales se cargan desde la migración SQL.
-                </small>
-              </div>
-            )}
+            {page === "categories" && <Categories onCategoriesChange={load} />}
             {page === "discounts" && (
               <div className="panel">
                 <h2>Crear descuento por categoría</h2>
