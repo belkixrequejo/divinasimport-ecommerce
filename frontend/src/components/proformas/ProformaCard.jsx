@@ -39,8 +39,33 @@ export default function ProformaCard({
       )
   );
 
+  const deliveryType = proforma.delivery_type || "POR_DEFINIR";
+
+  const shippingCost =
+    deliveryType === "ENVIO"
+      ? Number(proforma.shipping_cost || 0)
+      : 0;
+
+  const collectionType = proforma.collection_type || "PREPAID";
+
   const vatAmount = Number(proforma.vat_amount || 0);
-  const total = Number(proforma.total || subtotal + vatAmount);
+
+  const total = subtotal + shippingCost + vatAmount;
+
+  const amountToDivinas =
+    collectionType === "CONTRA_ENTREGA"
+      ? shippingCost
+      : total;
+
+  const amountToCarrier =
+    collectionType === "CONTRA_ENTREGA"
+      ? subtotal
+      : 0;
+
+  const collectionLabel =
+    collectionType === "CONTRA_ENTREGA"
+      ? "Contra entrega"
+      : "Pago anticipado";
 
   const saleDate = proforma.created_at
     ? new Date(proforma.created_at).toLocaleString("es-EC", {
@@ -62,7 +87,10 @@ export default function ProformaCard({
 
     try {
       if (typeof window.confirmAction !== "function") {
-        window.notify?.("No está disponible el modal de confirmación.", "error");
+        window.notify?.(
+          "No está disponible el modal de confirmación.",
+          "error"
+        );
         return;
       }
 
@@ -132,17 +160,26 @@ export default function ProformaCard({
       });
 
       const link = document.createElement("a");
-      const number = String(proforma.proforma_number || proforma.id)
-        .replace(/[^a-zA-Z0-9-_]/g, "-");
+
+      const number = String(
+        proforma.proforma_number || proforma.id
+      ).replace(/[^a-zA-Z0-9-_]/g, "-");
 
       link.download = `DIVINAS-IMPORT-PROFORMA-${number}.png`;
       link.href = canvas.toDataURL("image/png");
       link.click();
 
-      window.notify?.("Proforma descargada correctamente.", "success");
+      window.notify?.(
+        "Proforma descargada correctamente.",
+        "success"
+      );
     } catch (error) {
       console.error("Error descargando proforma:", error);
-      window.notify?.("No se pudo generar la imagen de la proforma.", "error");
+
+      window.notify?.(
+        "No se pudo generar la imagen de la proforma.",
+        "error"
+      );
     } finally {
       setDownloading(false);
     }
@@ -175,7 +212,7 @@ export default function ProformaCard({
             </small>
           </div>
 
-          <strong>{money(proforma.total)}</strong>
+          <strong>{money(total)}</strong>
         </div>
 
         <p className={`proformaStatus status-${status?.toLowerCase()}`}>
@@ -185,7 +222,7 @@ export default function ProformaCard({
         <label>
           Tipo de entrega
           <select
-            value={proforma.delivery_type || "POR_DEFINIR"}
+            value={deliveryType}
             disabled={!canEdit || processing}
             onChange={(e) =>
               onDeliveryChange(proforma.id, e.target.value)
@@ -223,7 +260,9 @@ export default function ProformaCard({
             disabled={downloading}
           >
             <Download size={17} />
-            {downloading ? "Generando imagen..." : "Descargar proforma PNG"}
+            {downloading
+              ? "Generando imagen..."
+              : "Descargar proforma PNG"}
           </button>
         </div>
 
@@ -251,13 +290,15 @@ export default function ProformaCard({
               disabled={processing}
               onClick={handleConfirm}
             >
-              {processing ? "Procesando..." : "Confirmar venta"}
+              {processing
+                ? "Procesando..."
+                : "Confirmar venta"}
             </button>
           </div>
         )}
       </article>
 
-      {/* Comprobante oculto que se convierte en PNG */}
+      {/* Comprobante oculto para generar PNG */}
       <div className="proformaReceiptCapture">
         <div className="proformaReceipt" ref={receiptRef}>
           <header className="proformaReceiptBrand">
@@ -266,6 +307,7 @@ export default function ProformaCard({
             </div>
 
             <p>MODA PARA TODA LA FAMILIA</p>
+
             <div className="proformaReceiptAccent" />
 
             <h2>PROFORMA</h2>
@@ -314,8 +356,15 @@ export default function ProformaCard({
 
             <p>
               <strong>Tipo de entrega:</strong>{" "}
-              {deliveryLabel(proforma.delivery_type)}
+              {deliveryLabel(deliveryType)}
             </p>
+
+            {deliveryType === "ENVIO" && (
+              <p>
+                <strong>Modalidad de pago:</strong>{" "}
+                {collectionLabel}
+              </p>
+            )}
           </section>
 
           <section className="proformaReceiptBlock">
@@ -343,7 +392,10 @@ export default function ProformaCard({
               );
 
               return (
-                <div className="proformaReceiptProduct" key={item.id}>
+                <div
+                  className="proformaReceiptProduct"
+                  key={item.id}
+                >
                   <div>
                     <strong>{productName}</strong>
 
@@ -373,6 +425,7 @@ export default function ProformaCard({
                   </div>
 
                   <strong>{item.quantity}</strong>
+
                   <strong>{money(lineTotal)}</strong>
                 </div>
               );
@@ -386,9 +439,16 @@ export default function ProformaCard({
             </div>
 
             <div>
-              <span>Subtotal</span>
+              <span>Subtotal de productos</span>
               <strong>{money(subtotal)}</strong>
             </div>
+
+            {deliveryType === "ENVIO" && (
+              <div>
+                <span>Valor del envío</span>
+                <strong>{money(shippingCost)}</strong>
+              </div>
+            )}
 
             <div>
               <span>IVA</span>
@@ -396,10 +456,44 @@ export default function ProformaCard({
             </div>
 
             <div className="proformaReceiptGrandTotal">
-              <span>TOTAL</span>
+              <span>TOTAL DE LA PROFORMA</span>
               <strong>{money(total)}</strong>
             </div>
           </div>
+
+          {deliveryType === "ENVIO" && (
+            <section className="proformaReceiptBlock">
+              <h3>RESUMEN DE PAGOS</h3>
+
+              <p>
+                <strong>Modalidad:</strong>{" "}
+                {collectionLabel}
+              </p>
+
+              <p>
+                <strong>Recibe DIVINAS IMPORT:</strong>{" "}
+                {money(amountToDivinas)}
+              </p>
+
+              {collectionType === "CONTRA_ENTREGA" && (
+                <p>
+                  <strong>
+                    Paga a la transportadora:
+                  </strong>{" "}
+                  {money(amountToCarrier)}
+                </p>
+              )}
+
+              {collectionType === "PREPAID" && (
+                <p>
+                  <strong>
+                    Pago anticipado a DIVINAS IMPORT:
+                  </strong>{" "}
+                  {money(total)}
+                </p>
+              )}
+            </section>
+          )}
 
           {proforma.notes && (
             <section className="proformaReceiptNotes">
@@ -410,9 +504,12 @@ export default function ProformaCard({
 
           <footer className="proformaReceiptFooter">
             <strong>¡GRACIAS POR PREFERIRNOS!</strong>
+
             <p>DIVINAS IMPORT · Moda para toda la familia</p>
+
             <small>
-              Este documento es una proforma y no constituye comprobante de pago.
+              Este documento es una proforma y no constituye
+              comprobante de pago.
             </small>
           </footer>
         </div>

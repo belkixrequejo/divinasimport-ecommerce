@@ -2563,3 +2563,33 @@ button {
   color: #999;
   font-size: 10px;
 }
+
+.proformaShippingSection {
+  display: grid;
+  gap: 14px;
+  padding: 18px;
+  margin: 20px 0;
+  border: 1px solid #eaddec;
+  border-radius: 12px;
+  background: #faf7fb;
+}
+
+.proformaShippingSection h3 {
+  margin: 0;
+  color: #884798;
+}
+
+.proformaShippingSection label {
+  display: grid;
+  gap: 7px;
+  font-weight: 600;
+}
+
+.proformaShippingSection input,
+.proformaShippingSection select {
+  width: 100%;
+  padding: 11px;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  background: #fff;
+}

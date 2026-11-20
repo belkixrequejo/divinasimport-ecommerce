@@ -170,27 +170,68 @@ app.post("/api/store/orders", async (req, res) => {
 
 app.post("/api/admin/proformas", auth, async (req, res) => {
   try {
-    const { customer, items, delivery_type } = req.body;
+    const {
+      customer,
+      items,
+      delivery_type,
+      shipping_cost,
+      collection_type,
+    } = req.body;
 
+    const delivery = delivery_type || "POR_DEFINIR";
+
+    const shipping =
+      delivery === "ENVIO"
+        ? Math.max(0, Number(shipping_cost) || 0)
+        : 0;
+
+    const collection =
+      delivery === "ENVIO"
+        ? collection_type || "PREPAID"
+        : "PREPAID";
+
+    if (!["PREPAID", "CONTRA_ENTREGA"].includes(collection)) {
+      return res.status(400).json({
+        error: "La modalidad de pago no es válida.",
+      });
+    }
+
+    // Crear la proforma utilizando la función SQL existente
     const { data, error } = await db.rpc("create_proforma", {
       p_customer: customer,
       p_items: items,
-      p_delivery_type: delivery_type || "ENVIO",
-      p_created_by: req.user.id
+      p_delivery_type: delivery,
+      p_created_by: req.user.id,
     });
 
     if (error) throw error;
 
-    res.status(201).json(data);
+    // Guardar los datos de envío y modalidad de pago
+    const { error: updateError } = await db
+      .from("proformas")
+      .update({
+        shipping_cost: shipping,
+        collection_type: collection,
+      })
+      .eq("id", data.proforma_id);
+
+    if (updateError) throw updateError;
+
+    res.status(201).json({
+      ...data,
+      shipping_cost: shipping,
+      collection_type: collection,
+    });
 
   } catch (e) {
     console.error("ERROR CREANDO PROFORMA:", e);
 
     res.status(400).json({
-      error: e.message
+      error: e.message,
     });
   }
 });
+
 
 // ========================================
 // ACTUALIZAR PROFORMA PENDIENTE
@@ -199,11 +240,18 @@ app.post("/api/admin/proformas", auth, async (req, res) => {
 app.put("/api/admin/proformas/:id", auth, async (req, res) => {
   try {
     const { id } = req.params;
-    const { customer, items, delivery_type } = req.body || {};
+
+    const {
+      customer,
+      items,
+      delivery_type,
+      shipping_cost,
+      collection_type,
+    } = req.body || {};
 
     if (!id) {
       return res.status(400).json({
-        error: "Falta el identificador de la proforma."
+        error: "Falta el identificador de la proforma.",
       });
     }
 
@@ -214,7 +262,7 @@ app.put("/api/admin/proformas/:id", auth, async (req, res) => {
       items.length === 0
     ) {
       return res.status(400).json({
-        error: "Ingresa el nombre, la ciudad y al menos un producto."
+        error: "Ingresa el nombre, la ciudad y al menos un producto.",
       });
     }
 
@@ -227,16 +275,36 @@ app.put("/api/admin/proformas/:id", auth, async (req, res) => {
         Number(item.unit_price) < 0
       ) {
         return res.status(400).json({
-          error: "Hay productos con datos inválidos. Revisa cantidades y precios."
+          error:
+            "Hay productos con datos inválidos. Revisa cantidades y precios.",
         });
       }
     }
 
+    const delivery = delivery_type || "POR_DEFINIR";
+
+    const shipping =
+      delivery === "ENVIO"
+        ? Math.max(0, Number(shipping_cost) || 0)
+        : 0;
+
+    const collection =
+      delivery === "ENVIO"
+        ? collection_type || "PREPAID"
+        : "PREPAID";
+
+    if (!["PREPAID", "CONTRA_ENTREGA"].includes(collection)) {
+      return res.status(400).json({
+        error: "La modalidad de pago no es válida.",
+      });
+    }
+
+    // Actualizar datos de cliente y productos
     const { data, error } = await db.rpc("update_pending_proforma", {
       p_proforma_id: id,
       p_customer: customer,
       p_items: items,
-      p_delivery_type: delivery_type || "POR_DEFINIR"
+      p_delivery_type: delivery,
     });
 
     if (error) {
@@ -244,32 +312,53 @@ app.put("/api/admin/proformas/:id", auth, async (req, res) => {
         message: error.message,
         details: error.details,
         hint: error.hint,
-        code: error.code
+        code: error.code,
       });
 
       return res.status(400).json({
         error: error.message,
         details: error.details,
         hint: error.hint,
-        code: error.code
+        code: error.code,
+      });
+    }
+
+    // Guardar valor del envío y modalidad de pago
+    const { error: shippingError } = await db
+      .from("proformas")
+      .update({
+        shipping_cost: shipping,
+        collection_type: collection,
+      })
+      .eq("id", id)
+      .eq("status", "PENDIENTE");
+
+    if (shippingError) {
+      console.error("ERROR GUARDANDO DATOS DE ENVÍO:", shippingError);
+
+      return res.status(400).json({
+        error: shippingError.message,
       });
     }
 
     return res.json({
       success: true,
       message: "Proforma actualizada correctamente.",
-      data
+      data: {
+        ...data,
+        shipping_cost: shipping,
+        collection_type: collection,
+      },
     });
 
   } catch (e) {
     console.error("ERROR INESPERADO AL ACTUALIZAR PROFORMA:", e);
 
     return res.status(500).json({
-      error: e.message || "No se pudo actualizar la proforma."
+      error: e.message || "No se pudo actualizar la proforma.",
     });
   }
 });
-
 
  // ========================================
  // CAMBIAR TIPO DE ENTREGA

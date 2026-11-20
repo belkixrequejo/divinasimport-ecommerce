@@ -20,6 +20,11 @@ export default function ProformaForm({
   const [searchResults, setSearchResults] = useState([]);
   const [saving, setSaving] = useState(false);
 
+  // NUEVOS CAMPOS DE ENVÍO
+  const [deliveryType, setDeliveryType] = useState("POR_DEFINIR");
+  const [shippingCost, setShippingCost] = useState("0");
+  const [collectionType, setCollectionType] = useState("PREPAID");
+
   // Cargar información de la proforma al editar
   useEffect(() => {
     if (proforma) {
@@ -33,12 +38,21 @@ export default function ProformaForm({
         (proforma.proforma_items || []).map((item) => ({
           product_id: item.product_id,
           variant_id: item.variant_id || null,
-          name: item.products?.name || item.product_name_snapshot || item.product_name || "",
+          name:
+            item.products?.name ||
+            item.product_name_snapshot ||
+            item.product_name ||
+            "",
           quantity: Number(item.quantity),
           unit_price: Number(item.unit_price),
           discount_percent: Number(item.discount_percent || 0),
         }))
       );
+
+      // Cargar información del envío
+      setDeliveryType(proforma.delivery_type || "POR_DEFINIR");
+      setShippingCost(String(proforma.shipping_cost ?? 0));
+      setCollectionType(proforma.collection_type || "PREPAID");
     } else {
       setCustomer({
         full_name: "",
@@ -47,6 +61,11 @@ export default function ProformaForm({
       });
 
       setItems([]);
+
+      // Valores iniciales
+      setDeliveryType("POR_DEFINIR");
+      setShippingCost("0");
+      setCollectionType("PREPAID");
     }
 
     setProductCode("");
@@ -175,12 +194,34 @@ export default function ProformaForm({
     );
   }
 
-  // Calcular total
-  const total = items.reduce(
+  // Calcular total de productos
+  const productsTotal = items.reduce(
     (sum, item) =>
       sum + Number(item.unit_price) * Number(item.quantity),
     0
   );
+
+  // Calcular envío
+  const shipping =
+    deliveryType === "ENVIO"
+      ? Math.max(0, Number(shippingCost) || 0)
+      : 0;
+
+  // Total general
+  const total = productsTotal + shipping;
+
+  // Valores que paga cada parte
+  const amountToDivinas =
+    deliveryType === "ENVIO" &&
+    collectionType === "CONTRA_ENTREGA"
+      ? shipping
+      : total;
+
+  const amountToCarrier =
+    deliveryType === "ENVIO" &&
+    collectionType === "CONTRA_ENTREGA"
+      ? productsTotal
+      : 0;
 
   // Guardar proforma
   async function submit(e) {
@@ -195,6 +236,14 @@ export default function ProformaForm({
 
     if (!items.length) {
       alert("Agrega al menos un producto.");
+      return;
+    }
+
+    if (
+      deliveryType === "ENVIO" &&
+      (!shippingCost || Number(shippingCost) < 0)
+    ) {
+      alert("Ingresa un valor de envío válido.");
       return;
     }
 
@@ -216,7 +265,14 @@ export default function ProformaForm({
           discount_percent: item.discount_percent,
         })),
 
-        delivery_type: proforma?.delivery_type || "POR_DEFINIR",
+        delivery_type: deliveryType,
+
+        // NUEVOS DATOS DE ENVÍO
+        shipping_cost: shipping,
+        collection_type:
+          deliveryType === "ENVIO"
+            ? collectionType
+            : "PREPAID",
       });
     } finally {
       setSaving(false);
@@ -414,12 +470,100 @@ export default function ProformaForm({
           )}
         </div>
 
+        {/* NUEVA SECCIÓN DE ENTREGA Y ENVÍO */}
+        <div className="proformaShippingSection">
+          <h3>Entrega y envío</h3>
+
+          <label>
+            Tipo de entrega
+            <select
+              value={deliveryType}
+              onChange={(e) => {
+                const value = e.target.value;
+                setDeliveryType(value);
+
+                if (value !== "ENVIO") {
+                  setShippingCost("0");
+                  setCollectionType("PREPAID");
+                }
+              }}
+              disabled={saving}
+            >
+              <option value="POR_DEFINIR">Por definir</option>
+              <option value="ENVIO">Envío</option>
+              <option value="RETIRO">Retiro en tienda</option>
+              <option value="LOCAL">Compra directa en local</option>
+            </select>
+          </label>
+
+          {deliveryType === "ENVIO" && (
+            <>
+              <label>
+                Valor del envío ($)
+                <input
+                  type="number"
+                  min="0"
+                  step="0.01"
+                  value={shippingCost}
+                  onChange={(e) => setShippingCost(e.target.value)}
+                  placeholder="Ej. 5.00"
+                  disabled={saving}
+                />
+              </label>
+
+              <label>
+                Modalidad de pago
+                <select
+                  value={collectionType}
+                  onChange={(e) =>
+                    setCollectionType(e.target.value)
+                  }
+                  disabled={saving}
+                >
+                  <option value="PREPAID">
+                    Pago anticipado: productos + envío
+                  </option>
+                  <option value="CONTRA_ENTREGA">
+                    Contra entrega: envío a nosotros y productos a transportadora
+                  </option>
+                </select>
+              </label>
+            </>
+          )}
+        </div>
+
         {/* TOTALES */}
         <div className="proformaTotals">
+          <div>
+            <span>Subtotal de productos</span>
+            <strong>{money(productsTotal)}</strong>
+          </div>
+
+          <div>
+            <span>Valor del envío</span>
+            <strong>{money(shipping)}</strong>
+          </div>
+
           <div>
             <span>Total de la proforma</span>
             <strong>{money(total)}</strong>
           </div>
+
+          {deliveryType === "ENVIO" && (
+            <>
+              <div>
+                <span>Recibe DIVINAS IMPORT</span>
+                <strong>{money(amountToDivinas)}</strong>
+              </div>
+
+              {amountToCarrier > 0 && (
+                <div>
+                  <span>Paga a la transportadora</span>
+                  <strong>{money(amountToCarrier)}</strong>
+                </div>
+              )}
+            </>
+          )}
 
           <small>IVA (0%): $0.00</small>
         </div>
