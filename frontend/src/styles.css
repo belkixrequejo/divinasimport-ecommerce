@@ -2884,3 +2884,461 @@ button:hover:not(:disabled) {
     padding: 20px 14px;
   }
 }
+
+
+
+/* =========================================
+   TIPOGRAFÍA Y JERARQUÍA DE TÍTULOS
+   DIVINAS IMPORT
+   ========================================= */
+
+/* Títulos principales de la tienda */
+.intro h2,
+.sectionhead h2,
+.checkout h1,
+.adminhead h1 {
+  font-family: "Playfair Display", Georgia, serif;
+  font-weight: 700;
+  letter-spacing: -0.7px;
+  line-height: 1.15;
+  color: var(--ink);
+}
+
+.sectionhead h2 {
+  font-size: clamp(30px, 3.2vw, 38px);
+  margin: 8px 0 0;
+  position: relative;
+}
+
+.sectionhead h2::after {
+  content: "";
+  display: block;
+  width: 52px;
+  height: 3px;
+  margin-top: 10px;
+  border-radius: 5px;
+  background: linear-gradient(90deg, var(--orange), var(--purple));
+}
+
+.intro h2 {
+  font-size: clamp(29px, 3vw, 38px);
+  margin: 9px 0 10px;
+}
+
+/* Nombre de cada producto */
+.product h3 {
+  margin: 13px 0 5px;
+  color: var(--ink);
+  font-family: "DM Sans", sans-serif;
+  font-size: 14px;
+  font-weight: 800;
+  line-height: 1.4;
+  letter-spacing: 0.25px;
+  text-transform: uppercase;
+  transition: color 0.2s ease;
+}
+
+.product:hover h3 {
+  color: var(--purple);
+}
+
+/* Encabezados de filtros, carrito y paneles */
+.filters h3,
+.summary h2,
+.panel h2,
+.modal h2,
+.proformaModal form.panel > h2 {
+  color: var(--ink);
+  font-family: "Playfair Display", Georgia, serif;
+  font-weight: 700;
+  letter-spacing: -0.3px;
+  line-height: 1.2;
+}
+
+.filters h3 {
+  font-family: "DM Sans", sans-serif;
+  font-size: 16px;
+  font-weight: 800;
+}
+
+.summary h2,
+.panel h2 {
+  font-size: 25px;
+}
+
+.modal h2 {
+  font-size: 28px;
+}
+
+/* Subtítulos dentro de tarjetas y formularios */
+.proformaCardHeader h3,
+.proformaForm h3,
+.proformaSection h3 {
+  font-family: "DM Sans", sans-serif;
+  font-weight: 800;
+  letter-spacing: 0.1px;
+}
+
+/* Títulos del área administrativa */
+.adminhead h1 {
+  font-size: clamp(27px, 3vw, 35px);
+}
+
+/* Ajustes para pantallas pequeñas */
+@media (max-width: 650px) {
+  .sectionhead {
+    align-items: flex-start;
+    gap: 12px;
+  }
+
+  .sectionhead h2 {
+    font-size: 27px;
+  }
+
+  .sectionhead h2::after {
+    width: 40px;
+    margin-top: 7px;
+  }
+
+  .intro h2 {
+    font-size: 29px;
+  }
+
+  .product h3 {
+    font-size: 12px;
+    line-height: 1.35;
+  }
+
+  .checkout h1 {
+    font-size: 32px;
+  }
+}
+
+
+
+/* =========================================
+   COLOR DE TÍTULOS - DIVINAS IMPORT
+   ========================================= */
+
+/* Títulos principales del catálogo y secciones */
+.intro h2,
+.sectionhead h2,
+.checkout h1,
+.adminhead h1,
+.summary h2,
+.panel h2,
+.modal h2,
+.proformaModal form.panel > h2 {
+  color: var(--purple) !important;
+}
+
+/* Nombre de los productos */
+.product h3 {
+  color: var(--purple) !important;
+}
+
+.product:hover h3 {
+  color: var(--orange) !important;
+}
+
+/* Encabezados de categorías y apartados */
+.filters h3,
+.proformaCardHeader h3,
+.proformaForm h3,
+.proformaSection h3 {
+  color: var(--purple) !important;
+}
+
+/* Títulos destacados del área administrativa */
+.adminhead h1 {
+  color: var(--purple) !important;
+}
+
+/* Mantener contraste de títulos dentro del banner */
+.hero h1 {
+  color: #fff;
+}
+
+.hero h1 em {
+  color: var(--orange);
+}
+
+
+
+/* =========================================
+   MODAL DE PRODUCTO: TIPOGRAFÍA Y ACABADO
+   DIVINAS IMPORT
+   ========================================= */
+
+.storeOptionsModal {
+  color: #3b2940;
+  font-family: "DM Sans", sans-serif;
+}
+
+.storeOptionsClose {
+  color: #884798;
+  background: #f7eff8;
+  border: 1px solid #eadced;
+  border-radius: 50%;
+  width: 34px;
+  height: 34px;
+  font-size: 23px;
+  line-height: 1;
+  transition: background .2s ease, color .2s ease, transform .2s ease;
+}
+
+.storeOptionsClose:hover {
+  color: #fff;
+  background: #884798;
+  transform: rotate(90deg);
+}
+
+.storeOptionsProduct small {
+  display: inline-block;
+  color: #9a6aa3;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 1.5px;
+  margin-bottom: 5px;
+}
+
+.storeOptionsProduct h2 {
+  color: #35213c;
+  font-family: "Playfair Display", Georgia, serif;
+  font-size: clamp(19px, 4vw, 23px);
+  font-weight: 700;
+  line-height: 1.2;
+  letter-spacing: -.25px;
+  margin: 0 0 8px;
+}
+
+.storeOptionsProduct strong {
+  display: inline-block;
+  color: #884798;
+  font-size: 21px;
+  font-weight: 800;
+  letter-spacing: -.4px;
+}
+
+.storeOptionField {
+  display: flex;
+  flex-direction: column;
+  gap: 9px;
+  color: #51365a;
+  font-size: 13px;
+  font-weight: 800;
+  letter-spacing: .25px;
+}
+
+.storeOptionField select {
+  width: 100%;
+  min-height: 44px;
+  padding: 10px 13px;
+  border: 1.5px solid #dfcce4;
+  border-radius: 11px;
+  background: #fdfaff;
+  color: #49334f;
+  font-family: "DM Sans", sans-serif;
+  font-size: 13px;
+  font-weight: 650;
+  outline: none;
+  transition: border-color .2s ease, box-shadow .2s ease;
+}
+
+.storeOptionField select:focus {
+  border-color: #884798;
+  box-shadow: 0 0 0 3px rgba(136, 71, 152, .12);
+}
+
+.storeVariantInfo {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 9px 14px;
+  padding: 14px;
+  border: 1px solid #eee3f0;
+  border-radius: 12px;
+  background: linear-gradient(120deg, #fbf6fc, #fffaf4);
+  color: #76647b;
+  font-size: 12px;
+  line-height: 1.45;
+}
+
+.storeVariantInfo span {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.storeVariantInfo b {
+  color: #884798;
+  font-weight: 800;
+}
+
+.storeQtySelector {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.storeQtySelector button {
+  display: grid;
+  place-items: center;
+  width: 38px;
+  height: 38px;
+  border: 1.5px solid #d9c2df;
+  border-radius: 10px;
+  background: #fff;
+  color: #884798;
+  transition: background .2s ease, color .2s ease, border-color .2s ease;
+}
+
+.storeQtySelector button:not(:disabled):hover {
+  border-color: #884798;
+  background: #884798;
+  color: #fff;
+}
+
+.storeQtySelector button:disabled {
+  opacity: .4;
+  cursor: not-allowed;
+}
+
+.storeQtySelector input {
+  width: 80px;
+  height: 38px;
+  border: 1.5px solid #dfcce4;
+  border-radius: 10px;
+  color: #3b2940;
+  background: #fff;
+  text-align: center;
+  font-family: "DM Sans", sans-serif;
+  font-size: 15px;
+  font-weight: 800;
+  outline: none;
+}
+
+.storeQtySelector input:focus {
+  border-color: #884798;
+  box-shadow: 0 0 0 3px rgba(136, 71, 152, .1);
+}
+
+.storeOptionsAdd {
+  min-height: 46px;
+  border-radius: 11px;
+  background: linear-gradient(110deg, #884798, #a45bb2);
+  color: #fff;
+  font-family: "DM Sans", sans-serif;
+  font-size: 14px;
+  font-weight: 800;
+  letter-spacing: .35px;
+  box-shadow: 0 5px 14px rgba(136, 71, 152, .2);
+  transition: transform .2s ease, box-shadow .2s ease, filter .2s ease;
+}
+
+.storeOptionsAdd:not(:disabled):hover {
+  transform: translateY(-1px);
+  box-shadow: 0 8px 18px rgba(136, 71, 152, .27);
+  filter: saturate(1.08);
+}
+
+.storeOptionsAdd:disabled {
+  background: #c9bdcc;
+  box-shadow: none;
+  cursor: not-allowed;
+}
+
+.storeStockNote {
+  display: block;
+  color: #8b7d90;
+  font-size: 11px;
+  line-height: 1.55;
+}
+
+.storeOutOfStock {
+  padding: 11px 13px;
+  border: 1px solid #f3d4d4;
+  border-radius: 10px;
+  background: #fff6f6;
+  color: #b42318;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+@media (max-width: 480px) {
+  .storeOptionsProduct h2 {
+    font-size: 18px;
+  }
+
+  .storeVariantInfo {
+    gap: 8px;
+    padding: 12px;
+    font-size: 11px;
+  }
+
+  .storeOptionsAdd {
+    min-height: 44px;
+    font-size: 13px;
+  }
+}
+/* MENÚ SUPERIOR - DIVINAS IMPORT */
+.top nav button {
+  color: var(--purple) !important;
+  font-family: "DM Sans", sans-serif;
+  font-size: 14px;
+  font-weight: 700;
+  letter-spacing: 0.3px;
+  transition: color .25s ease, transform .25s ease;
+  position: relative;
+}
+
+.top nav button:hover {
+  color: var(--orange) !important;
+  transform: translateY(-2px);
+}
+
+.top nav button::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  bottom: -7px;
+  width: 0;
+  height: 2px;
+  background: var(--orange);
+  border-radius: 5px;
+  transition: width .25s ease;
+}
+
+.top nav button:hover::after {
+  width: 100%;
+}
+/* SCROLL DEL FORMULARIO DE PRODUCTOS */
+.overlay {
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+.overlay .modal {
+  max-height: 90vh;
+  max-height: 90dvh;
+  overflow-y: auto;
+  overflow-x: hidden;
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
+  box-sizing: border-box;
+  scrollbar-width: thin;
+  scrollbar-color: #884798 #f5edf7;
+}
+
+/* Ajuste para celulares */
+@media (max-width: 650px) {
+  .overlay {
+    padding: 10px;
+    align-items: center;
+  }
+
+  .overlay .modal {
+    width: 100%;
+    max-height: 90dvh;
+    padding: 24px 18px;
+    border-radius: 15px;
+  }
+}

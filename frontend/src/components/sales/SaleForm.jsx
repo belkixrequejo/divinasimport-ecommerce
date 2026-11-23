@@ -151,13 +151,19 @@ export default function SaleForm({ onClose, onSuccess }) {
     };
   });
 
-  const subtotal = cartWithPrices.reduce((sum, item) => sum + item.lineTotal, 0);
-  const shipping = deliveryType === "ENVIO" ? Math.max(0, Number(shippingCost) || 0) : 0;
+  const subtotal = cartWithPrices.reduce(
+    (sum, item) => sum + item.lineTotal,
+    0,
+  );
+  const shipping =
+    deliveryType === "ENVIO" ? Math.max(0, Number(shippingCost) || 0) : 0;
   const total = subtotal + shipping;
   const amountToDivinas =
     deliveryType !== "ENVIO" || collectionType === "PREPAID" ? total : shipping;
   const amountToCarrier =
-    deliveryType === "ENVIO" && collectionType === "CONTRA_ENTREGA" ? subtotal : 0;
+    deliveryType === "ENVIO" && collectionType === "CONTRA_ENTREGA"
+      ? subtotal
+      : 0;
 
   const money = (value) => `$${Number(value || 0).toFixed(2)}`;
 
@@ -277,7 +283,10 @@ export default function SaleForm({ onClose, onSuccess }) {
       customerPayload = customerData;
     }
 
-    if (deliveryType === "ENVIO" && (!Number.isFinite(Number(shippingCost)) || Number(shippingCost) < 0)) {
+    if (
+      deliveryType === "ENVIO" &&
+      (!Number.isFinite(Number(shippingCost)) || Number(shippingCost) < 0)
+    ) {
       window.notify?.("Ingresa un valor de envío válido", "warning");
       return;
     }
@@ -315,7 +324,8 @@ export default function SaleForm({ onClose, onSuccess }) {
         p_created_by: user.id,
         p_delivery_type: deliveryType,
         p_shipping_cost: shipping,
-        p_collection_type: deliveryType === "ENVIO" ? collectionType : "PREPAID",
+        p_collection_type:
+          deliveryType === "ENVIO" ? collectionType : "PREPAID",
       });
 
       if (error) throw error;
@@ -524,7 +534,12 @@ export default function SaleForm({ onClose, onSuccess }) {
                   <option value="">Seleccionar talla / color...</option>
                   {productVariants.map((variant) => (
                     <option key={variant.id} value={variant.id}>
-                      {[variant.size, variant.color, `Stock: ${variant.stock}`]
+                      {[
+                        variant.sku ? `Modelo: ${variant.sku}` : null,
+                        variant.color ? `Color: ${variant.color}` : null,
+                        variant.size ? `Talla: ${variant.size}` : null,
+                        `Stock: ${variant.stock}`,
+                      ]
                         .filter(Boolean)
                         .join(" · ")}
                     </option>
@@ -577,7 +592,17 @@ export default function SaleForm({ onClose, onSuccess }) {
                     <strong>{item.product.name}</strong>
                     <span>
                       {item.variant
-                        ? [item.variant.size, item.variant.color]
+                        ? [
+                            item.variant.sku
+                              ? `Modelo: ${item.variant.sku}`
+                              : null,
+                            item.variant.color
+                              ? `Color: ${item.variant.color}`
+                              : null,
+                            item.variant.size
+                              ? `Talla: ${item.variant.size}`
+                              : null,
+                          ]
                             .filter(Boolean)
                             .join(" · ")
                         : "Sin variante"}
@@ -645,8 +670,12 @@ export default function SaleForm({ onClose, onSuccess }) {
                 value={collectionType}
                 onChange={(e) => setCollectionType(e.target.value)}
               >
-                <option value="PREPAID">Pago anticipado: DIVINAS cobra productos + envío</option>
-                <option value="CONTRA_ENTREGA">Contra entrega: transportadora cobra los productos</option>
+                <option value="PREPAID">
+                  Pago anticipado: DIVINAS cobra productos + envío
+                </option>
+                <option value="CONTRA_ENTREGA">
+                  Contra entrega: transportadora cobra los productos
+                </option>
               </select>
             </>
           )}
@@ -692,14 +721,27 @@ export default function SaleForm({ onClose, onSuccess }) {
           </div>
           {deliveryType === "ENVIO" && (
             <>
-              <div><span>Envío</span><strong>{money(shipping)}</strong></div>
+              <div>
+                <span>Envío</span>
+                <strong>{money(shipping)}</strong>
+              </div>
               <div>
                 <span>Modalidad de cobro</span>
-                <strong>{collectionType === "PREPAID" ? "Pago anticipado" : "Contra entrega"}</strong>
+                <strong>
+                  {collectionType === "PREPAID"
+                    ? "Pago anticipado"
+                    : "Contra entrega"}
+                </strong>
               </div>
-              <div><span>Recibe DIVINAS IMPORT</span><strong>{money(amountToDivinas)}</strong></div>
+              <div>
+                <span>Recibe DIVINAS IMPORT</span>
+                <strong>{money(amountToDivinas)}</strong>
+              </div>
               {amountToCarrier > 0 && (
-                <div><span>Cobra la transportadora</span><strong>{money(amountToCarrier)}</strong></div>
+                <div>
+                  <span>Cobra la transportadora</span>
+                  <strong>{money(amountToCarrier)}</strong>
+                </div>
               )}
             </>
           )}

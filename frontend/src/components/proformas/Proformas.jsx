@@ -8,6 +8,7 @@ export default function Proformas({ products, discounts, onConfirmSale }) {
   const [editing, setEditing] = useState(null);
   const [showForm, setShowForm] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [variants, setVariants] = useState([]);
 
   const api = import.meta.env.VITE_API_URL;
 
@@ -41,6 +42,13 @@ export default function Proformas({ products, discounts, onConfirmSale }) {
     setLoading(true);
 
     try {
+      const { data: variantData, error: variantError } = await supabase
+        .from("product_variants")
+        .select("id, product_id, size, color, sku, stock");
+
+      if (variantError) throw variantError;
+      setVariants(variantData || []);
+
       const { data, error } = await supabase
         .from("proformas")
         .select(
@@ -157,6 +165,7 @@ export default function Proformas({ products, discounts, onConfirmSale }) {
         <ProformaForm
           products={products}
           discounts={discounts}
+          variants={variants}
           proforma={editing}
           onSave={saveProforma}
           onClose={() => {

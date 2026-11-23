@@ -1,4 +1,3 @@
-
 import { useEffect, useRef, useState } from "react";
 import { supabase } from "../../supabase";
 import { X, Package, UserRound, Receipt, Download } from "lucide-react";
@@ -70,7 +69,8 @@ export default function SaleDetail({ sale, customer, onClose }) {
 
   const money = (value) => `$${Number(value || 0).toFixed(2)}`;
   const productsSubtotal = Number(
-    sale.subtotal ?? items.reduce((sum, item) => sum + Number(item.line_total || 0), 0)
+    sale.subtotal ??
+      items.reduce((sum, item) => sum + Number(item.line_total || 0), 0),
   );
   const shippingCost = Number(sale.shipping_cost || 0);
   const deliveryType = sale.delivery_type || "LOCAL";
@@ -84,8 +84,11 @@ export default function SaleDetail({ sale, customer, onClose }) {
       ? productsSubtotal
       : 0;
   const deliveryLabel =
-    deliveryType === "ENVIO" ? "Envío por transportadora" :
-    deliveryType === "RETIRO" ? "Retiro por el cliente" : "Entrega local / tienda";
+    deliveryType === "ENVIO"
+      ? "Envío por transportadora"
+      : deliveryType === "RETIRO"
+        ? "Retiro por el cliente"
+        : "Entrega local / tienda";
   const collectionLabel =
     collectionType === "CONTRA_ENTREGA" ? "Contra entrega" : "Pago anticipado";
 
@@ -94,7 +97,10 @@ export default function SaleDetail({ sale, customer, onClose }) {
 
   const downloadReceipt = async () => {
     if (!receiptRef.current || loading || items.length === 0) {
-      window.notify?.("Espera a que carguen los productos de la venta", "warning");
+      window.notify?.(
+        "Espera a que carguen los productos de la venta",
+        "warning",
+      );
       return;
     }
 
@@ -109,8 +115,10 @@ export default function SaleDetail({ sale, customer, onClose }) {
       });
 
       const link = document.createElement("a");
-      const saleNumber = String(sale.sale_number || sale.id)
-        .replace(/[^a-zA-Z0-9-_]/g, "-");
+      const saleNumber = String(sale.sale_number || sale.id).replace(
+        /[^a-zA-Z0-9-_]/g,
+        "-",
+      );
 
       link.download = `DIVINAS-IMPORT-${saleNumber}.png`;
       link.href = canvas.toDataURL("image/png");
@@ -134,10 +142,7 @@ export default function SaleDetail({ sale, customer, onClose }) {
 
   return (
     <div className="saleDetailOverlay" onMouseDown={onClose}>
-      <div
-        className="saleDetailModal"
-        onMouseDown={(e) => e.stopPropagation()}
-      >
+      <div className="saleDetailModal" onMouseDown={(e) => e.stopPropagation()}>
         <div className="saleDetailHeader">
           <div>
             <span>DETALLE DE VENTA</span>
@@ -179,11 +184,20 @@ export default function SaleDetail({ sale, customer, onClose }) {
             <span>Referencia de pago</span>
             <strong>{sale.payment_reference || "No registrada"}</strong>
           </div>
-          <div><span>Tipo de entrega</span><strong>{deliveryLabel}</strong></div>
+          <div>
+            <span>Tipo de entrega</span>
+            <strong>{deliveryLabel}</strong>
+          </div>
           {deliveryType === "ENVIO" && (
             <>
-              <div><span>Modalidad de cobro</span><strong>{collectionLabel}</strong></div>
-              <div><span>Valor del envío</span><strong>{money(shippingCost)}</strong></div>
+              <div>
+                <span>Modalidad de cobro</span>
+                <strong>{collectionLabel}</strong>
+              </div>
+              <div>
+                <span>Valor del envío</span>
+                <strong>{money(shippingCost)}</strong>
+              </div>
             </>
           )}
         </div>
@@ -206,17 +220,18 @@ export default function SaleDetail({ sale, customer, onClose }) {
               return (
                 <div className="saleDetailItem" key={item.id}>
                   <div className="saleDetailItemInfo">
-                    <strong>
-                      {product?.name || "Producto no disponible"}
-                    </strong>
+                    <strong>{product?.name || "Producto no disponible"}</strong>
 
                     <small>Código: {product?.code || "—"}</small>
 
                     {variant && (
-                      <small>
-                        Talla: {variant.size || "—"} · Color:{" "}
-                        {variant.color || "—"}
-                      </small>
+                      <>
+                        {variant.sku && <small>Modelo: {variant.sku}</small>}
+                        <small>
+                          Color: {variant.color || "—"} · Talla:{" "}
+                          {variant.size || "—"}
+                        </small>
+                      </>
                     )}
 
                     <small>
@@ -224,9 +239,7 @@ export default function SaleDetail({ sale, customer, onClose }) {
                     </small>
 
                     {Number(item.discount_percent) > 0 && (
-                      <small>
-                        Descuento: {item.discount_percent}%
-                      </small>
+                      <small>Descuento: {item.discount_percent}%</small>
                     )}
                   </div>
 
@@ -238,15 +251,26 @@ export default function SaleDetail({ sale, customer, onClose }) {
         </div>
 
         <div className="saleDetailTotal">
-          <span><Receipt size={18} /> Total de la operación</span>
+          <span>
+            <Receipt size={18} /> Total de la operación
+          </span>
           <strong>{money(sale.total)}</strong>
         </div>
         {deliveryType === "ENVIO" && (
           <div className="saleDetailMetadata">
-            <div><span>Subtotal de productos</span><strong>{money(productsSubtotal)}</strong></div>
-            <div><span>Recibe DIVINAS IMPORT</span><strong>{money(amountToDivinas)}</strong></div>
+            <div>
+              <span>Subtotal de productos</span>
+              <strong>{money(productsSubtotal)}</strong>
+            </div>
+            <div>
+              <span>Recibe DIVINAS IMPORT</span>
+              <strong>{money(amountToDivinas)}</strong>
+            </div>
             {amountToCarrier > 0 && (
-              <div><span>Cobra la transportadora</span><strong>{money(amountToCarrier)}</strong></div>
+              <div>
+                <span>Cobra la transportadora</span>
+                <strong>{money(amountToCarrier)}</strong>
+              </div>
             )}
           </div>
         )}
@@ -291,8 +315,7 @@ export default function SaleDetail({ sale, customer, onClose }) {
                 {customer?.full_name || "Cliente no disponible"}
               </p>
               <p>
-                <strong>Teléfono:</strong>{" "}
-                {customer?.phone || "No registrado"}
+                <strong>Teléfono:</strong> {customer?.phone || "No registrado"}
               </p>
               <p>
                 <strong>Ciudad:</strong> {customer?.city || "No registrada"}
@@ -322,15 +345,30 @@ export default function SaleDetail({ sale, customer, onClose }) {
 
             <div className="saleReceiptBlock">
               <h3>ENTREGA Y COBRO</h3>
-              <p><strong>Tipo de entrega:</strong> {deliveryLabel}</p>
+              <p>
+                <strong>Tipo de entrega:</strong> {deliveryLabel}
+              </p>
               {deliveryType === "ENVIO" && (
                 <>
-                  <p><strong>Modalidad:</strong> {collectionLabel}</p>
-                  <p><strong>Subtotal de productos:</strong> {money(productsSubtotal)}</p>
-                  <p><strong>Valor del envío:</strong> {money(shippingCost)}</p>
-                  <p><strong>Recibe DIVINAS IMPORT:</strong> {money(amountToDivinas)}</p>
+                  <p>
+                    <strong>Modalidad:</strong> {collectionLabel}
+                  </p>
+                  <p>
+                    <strong>Subtotal de productos:</strong>{" "}
+                    {money(productsSubtotal)}
+                  </p>
+                  <p>
+                    <strong>Valor del envío:</strong> {money(shippingCost)}
+                  </p>
+                  <p>
+                    <strong>Recibe DIVINAS IMPORT:</strong>{" "}
+                    {money(amountToDivinas)}
+                  </p>
                   {amountToCarrier > 0 && (
-                    <p><strong>Paga a la transportadora:</strong> {money(amountToCarrier)}</p>
+                    <p>
+                      <strong>Paga a la transportadora:</strong>{" "}
+                      {money(amountToCarrier)}
+                    </p>
                   )}
                 </>
               )}
@@ -357,14 +395,15 @@ export default function SaleDetail({ sale, customer, onClose }) {
                       </strong>
                       <small>Código: {product?.code || "—"}</small>
                       {variant && (
-                        <small>
-                          Talla: {variant.size || "—"} · Color:{" "}
-                          {variant.color || "—"}
-                        </small>
+                        <>
+                          {variant.sku && <small>Modelo: {variant.sku}</small>}
+                          <small>
+                            Color: {variant.color || "—"} · Talla:{" "}
+                            {variant.size || "—"}
+                          </small>
+                        </>
                       )}
-                      <small>
-                        Precio unitario: {money(item.unit_price)}
-                      </small>
+                      <small>Precio unitario: {money(item.unit_price)}</small>
                       {Number(item.discount_percent) > 0 && (
                         <small>
                           Descuento aplicado: {item.discount_percent}%

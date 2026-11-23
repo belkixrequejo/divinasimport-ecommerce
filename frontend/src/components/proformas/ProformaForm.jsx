@@ -1,10 +1,10 @@
-
 import { useEffect, useState } from "react";
 import { money, round50 } from "./utils";
 
 export default function ProformaForm({
   products,
   discounts,
+  variants = [],
   proforma,
   onSave,
   onClose,
@@ -37,7 +37,9 @@ export default function ProformaForm({
       setItems(
         (proforma.proforma_items || []).map((item) => ({
           product_id: item.product_id,
+          line_key: `${item.product_id}:${item.variant_id || "sin-variante"}`,
           variant_id: item.variant_id || null,
+          variant: item.product_variants || null,
           name:
             item.products?.name ||
             item.product_name_snapshot ||
@@ -46,7 +48,7 @@ export default function ProformaForm({
           quantity: Number(item.quantity),
           unit_price: Number(item.unit_price),
           discount_percent: Number(item.discount_percent || 0),
-        }))
+        })),
       );
 
       // Cargar información del envío
@@ -72,51 +74,95 @@ export default function ProformaForm({
     setSearchResults([]);
   }, [proforma]);
 
-  // Agregar producto
+  // Agregar producto con una variante concreta (talla/color).
   function addProduct(productId) {
-    const product = products.find(
-      (p) => String(p.id) === String(productId)
-    );
+    const product = products.find((p) => String(p.id) === String(productId));
 
     if (!product) return;
 
     const discount = discounts.find(
-      (d) => d.category_id === product.category_id
+      (d) => d.category_id === product.category_id,
     );
-
     const percentage = Number(discount?.percentage || 0);
+    const price = round50(Number(product.price) * (1 - percentage / 100));
 
-    const price = round50(
-      Number(product.price) * (1 - percentage / 100)
+    const productVariants = variants.filter(
+      (variant) => String(variant.product_id) === String(product.id),
     );
+
+    // Si el producto tiene variantes, iniciar con la primera registrada.
+    // El usuario puede cambiar talla/color desde la línea agregada.
+    const selectedVariant = productVariants[0] || null;
+    const variantId = selectedVariant?.id || null;
+    const lineKey = `${product.id}:${variantId || "sin-variante"}`;
 
     setItems((current) => {
-      const existing = current.find(
-        (item) => item.product_id === product.id
-      );
+      const existing = current.find((item) => item.line_key === lineKey);
 
       if (existing) {
         return current.map((item) =>
-          item.product_id === product.id
-            ? {
-                ...item,
-                quantity: Number(item.quantity) + 1,
-              }
-            : item
+          item.line_key === lineKey
+            ? { ...item, quantity: Number(item.quantity) + 1 }
+            : item,
         );
       }
 
       return [
         ...current,
         {
+          line_key: lineKey,
           product_id: product.id,
-          variant_id: null,
+          variant_id: variantId,
+          variant: selectedVariant,
           name: product.name,
           quantity: 1,
           unit_price: price,
           discount_percent: percentage,
         },
       ];
+    });
+  }
+
+  // Cambiar talla/color conserva cada combinación como una línea independiente.
+  function updateItemVariant(lineKey, variantId) {
+    setItems((current) => {
+      const item = current.find((row) => row.line_key === lineKey);
+      if (!item) return current;
+
+      const nextVariant =
+        variants.find((variant) => String(variant.id) === String(variantId)) ||
+        null;
+      const nextKey = `${item.product_id}:${nextVariant?.id || "sin-variante"}`;
+
+      if (
+        current.some(
+          (row) => row.line_key === nextKey && row.line_key !== lineKey,
+        )
+      ) {
+        return current
+          .map((row) =>
+            row.line_key === nextKey
+              ? {
+                  ...row,
+                  quantity: Number(row.quantity) + Number(item.quantity),
+                }
+              : row.line_key === lineKey
+                ? null
+                : row,
+          )
+          .filter(Boolean);
+      }
+
+      return current.map((row) =>
+        row.line_key === lineKey
+          ? {
+              ...row,
+              line_key: nextKey,
+              variant_id: nextVariant?.id || null,
+              variant: nextVariant,
+            }
+          : row,
+      );
     });
   }
 
@@ -165,7 +211,7 @@ export default function ProformaForm({
       (product) =>
         product.is_active !== false &&
         String(product.code || "").toLowerCase() ===
-          productCode.trim().toLowerCase()
+          productCode.trim().toLowerCase(),
     );
 
     if (exactMatch) {
@@ -174,7 +220,7 @@ export default function ProformaForm({
   }
 
   // Actualizar cantidad
-  function updateQuantity(productId, quantity) {
+  function updateQuantity(lineKey, quantity) {
     setItems((current) =>
       current.map((item) =>
         item.product_id === productId
@@ -182,44 +228,37 @@ export default function ProformaForm({
               ...item,
               quantity: Math.max(1, Number(quantity) || 1),
             }
-          : item
-      )
+          : item,
+      ),
     );
   }
 
   // Eliminar producto
-  function removeProduct(productId) {
-    setItems((current) =>
-      current.filter((item) => item.product_id !== productId)
-    );
+  function removeProduct(lineKey) {
+    setItems((current) => current.filter((item) => item.line_key !== lineKey));
   }
 
   // Calcular total de productos
   const productsTotal = items.reduce(
-    (sum, item) =>
-      sum + Number(item.unit_price) * Number(item.quantity),
-    0
+    (sum, item) => sum + Number(item.unit_price) * Number(item.quantity),
+    0,
   );
 
   // Calcular envío
   const shipping =
-    deliveryType === "ENVIO"
-      ? Math.max(0, Number(shippingCost) || 0)
-      : 0;
+    deliveryType === "ENVIO" ? Math.max(0, Number(shippingCost) || 0) : 0;
 
   // Total general
   const total = productsTotal + shipping;
 
   // Valores que paga cada parte
   const amountToDivinas =
-    deliveryType === "ENVIO" &&
-    collectionType === "CONTRA_ENTREGA"
+    deliveryType === "ENVIO" && collectionType === "CONTRA_ENTREGA"
       ? shipping
       : total;
 
   const amountToCarrier =
-    deliveryType === "ENVIO" &&
-    collectionType === "CONTRA_ENTREGA"
+    deliveryType === "ENVIO" && collectionType === "CONTRA_ENTREGA"
       ? productsTotal
       : 0;
 
@@ -269,10 +308,7 @@ export default function ProformaForm({
 
         // NUEVOS DATOS DE ENVÍO
         shipping_cost: shipping,
-        collection_type:
-          deliveryType === "ENVIO"
-            ? collectionType
-            : "PREPAID",
+        collection_type: deliveryType === "ENVIO" ? collectionType : "PREPAID",
       });
     } finally {
       setSaving(false);
@@ -291,12 +327,8 @@ export default function ProformaForm({
       <form className="panel" onSubmit={submit}>
         <div className="proformaFormHeader">
           <div>
-            <h2>
-              {proforma ? "Editar proforma" : "Nueva proforma"}
-            </h2>
-            <p>
-              Ingresa los datos del cliente y agrega los productos.
-            </p>
+            <h2>{proforma ? "Editar proforma" : "Nueva proforma"}</h2>
+            <p>Ingresa los datos del cliente y agrega los productos.</p>
           </div>
 
           <button
@@ -387,9 +419,7 @@ export default function ProformaForm({
                 >
                   <span>
                     <strong>{product.name}</strong>
-                    <small>
-                      Código: {product.code || "Sin código"}
-                    </small>
+                    <small>Código: {product.code || "Sin código"}</small>
                   </span>
 
                   <b>{money(product.price)}</b>
@@ -399,9 +429,7 @@ export default function ProformaForm({
           )}
 
           {productCode.trim() && searchResults.length === 0 && (
-            <p className="proformaNoResults">
-              No se encontraron productos.
-            </p>
+            <p className="proformaNoResults">No se encontraron productos.</p>
           )}
         </div>
 
@@ -423,14 +451,51 @@ export default function ProformaForm({
               {items.map((item) => (
                 <div
                   className="proformaFormItem"
-                  key={item.product_id}
+                  key={
+                    item.line_key ||
+                    `${item.product_id}:${item.variant_id || "sin-variante"}`
+                  }
                 >
                   <div className="proformaItemInfo">
                     <strong>{item.name}</strong>
+                    {(() => {
+                      const itemVariants = variants.filter(
+                        (variant) =>
+                          String(variant.product_id) ===
+                          String(item.product_id),
+                      );
+                      if (!itemVariants.length) {
+                        return <small>Sin variantes registradas</small>;
+                      }
+                      return (
+                        <label className="proformaVariantSelector">
+                          <span>Modelo · color · talla</span>
+                          <select
+                            value={item.variant_id || ""}
+                            onChange={(e) =>
+                              updateItemVariant(item.line_key, e.target.value)
+                            }
+                            disabled={saving}
+                          >
+                            {itemVariants.map((variant) => (
+                              <option key={variant.id} value={variant.id}>
+                                {variant.sku || "Variante"} ·{" "}
+                                {variant.color || "Sin color"} · Talla{" "}
+                                {variant.size || "Única"}
+                              </option>
+                            ))}
+                          </select>
+                          {item.variant && (
+                            <small>
+                              Color: {item.variant.color || "—"} · Talla:{" "}
+                              {item.variant.size || "—"}
+                            </small>
+                          )}
+                        </label>
+                      );
+                    })()}
                     {item.discount_percent > 0 && (
-                      <small>
-                        Descuento: {item.discount_percent}%
-                      </small>
+                      <small>Descuento: {item.discount_percent}%</small>
                     )}
                   </div>
 
@@ -441,25 +506,20 @@ export default function ProformaForm({
                       min="1"
                       value={item.quantity}
                       onChange={(e) =>
-                        updateQuantity(
-                          item.product_id,
-                          e.target.value
-                        )
+                        updateQuantity(item.line_key, e.target.value)
                       }
                     />
                   </div>
 
                   <div className="proformaItemPrice">
                     <small>Subtotal</small>
-                    <b>
-                      {money(item.unit_price * item.quantity)}
-                    </b>
+                    <b>{money(item.unit_price * item.quantity)}</b>
                   </div>
 
                   <button
                     type="button"
                     className="proformaRemoveButton"
-                    onClick={() => removeProduct(item.product_id)}
+                    onClick={() => removeProduct(item.line_key)}
                     disabled={saving}
                   >
                     Quitar
@@ -515,16 +575,15 @@ export default function ProformaForm({
                 Modalidad de pago
                 <select
                   value={collectionType}
-                  onChange={(e) =>
-                    setCollectionType(e.target.value)
-                  }
+                  onChange={(e) => setCollectionType(e.target.value)}
                   disabled={saving}
                 >
                   <option value="PREPAID">
                     Pago anticipado: productos + envío
                   </option>
                   <option value="CONTRA_ENTREGA">
-                    Contra entrega: envío a nosotros y productos a transportadora
+                    Contra entrega: envío a nosotros y productos a
+                    transportadora
                   </option>
                 </select>
               </label>
@@ -579,11 +638,7 @@ export default function ProformaForm({
             Cancelar
           </button>
 
-          <button
-            className="primary"
-            type="submit"
-            disabled={saving}
-          >
+          <button className="primary" type="submit" disabled={saving}>
             {saving ? "Guardando..." : "Guardar proforma"}
           </button>
         </div>

@@ -86,6 +86,10 @@ function App() {
     [sidebarOpen, setSidebarOpen] = useState(false),
     [user, setUser] = useState(null),
     [modal, setModal] = useState(false),
+    [optionProduct, setOptionProduct] = useState(null),
+    [selectedVariantId, setSelectedVariantId] = useState(""),
+    [selectedQty, setSelectedQty] = useState(1),
+    [imageViewer, setImageViewer] = useState(null),
     [edit, setEdit] = useState(null),
     [message, setMessage] = useState(""),
     [loginEmail, setLoginEmail] = useState(""),
@@ -240,16 +244,63 @@ function App() {
     [products, cat, query, discounts],
   );
 
-  const add = (p, variant = null) =>
+  const openProductOptions = (product) => {
+    const productVariants = variants.filter((v) => v.product_id === product.id);
+    setOptionProduct(product);
+    setSelectedVariantId(productVariants[0]?.id || "");
+    setSelectedQty(1);
+  };
+
+  const selectedVariant = optionProduct
+    ? variants.find(
+        (v) => v.id === selectedVariantId && v.product_id === optionProduct.id,
+      ) || null
+    : null;
+
+  const selectedStock = Math.max(0, Number(selectedVariant?.stock || 0));
+  const selectedCartQty = selectedVariant
+    ? cart.find((item) => item.variant?.id === selectedVariant.id)?.qty || 0
+    : 0;
+  const remainingSelectedStock = Math.max(0, selectedStock - selectedCartQty);
+
+  const addSelectedToCart = () => {
+    if (!optionProduct || !selectedVariant) {
+      alert("Este producto no tiene combinaciones disponibles.");
+      return;
+    }
+    if (selectedStock < 1) {
+      alert("Esta combinación está agotada.");
+      return;
+    }
+
+    const key = `${optionProduct.id}-${selectedVariant.id}`;
+    const currentQty = cart.find((item) => item.key === key)?.qty || 0;
+    if (currentQty + selectedQty > selectedStock) {
+      alert(
+        `Solo puedes agregar ${Math.max(0, selectedStock - currentQty)} unidades más de esta combinación.`,
+      );
+      return;
+    }
+
     setCart((old) => {
-      const id = p.id + (variant?.id || "");
-
-      const found = old.find((x) => x.key === id);
-
+      const found = old.find((item) => item.key === key);
       return found
-        ? old.map((x) => (x.key === id ? { ...x, qty: x.qty + 1 } : x))
-        : [...old, { key: id, product: p, variant, qty: 1 }];
+        ? old.map((item) =>
+            item.key === key ? { ...item, qty: item.qty + selectedQty } : item,
+          )
+        : [
+            ...old,
+            {
+              key,
+              product: optionProduct,
+              variant: selectedVariant,
+              qty: selectedQty,
+            },
+          ];
     });
+    setOptionProduct(null);
+    setPage("store");
+  };
 
   const subtotal = cart.reduce(
     (s, x) =>
@@ -481,12 +532,13 @@ function App() {
       }
 
       const lines = (data.items || [])
-
-        .map(
-          (i) =>
-            `• ${i.name} (${i.code}) | ${i.quantity} x ${money(i.unit_price)} = ${money(i.line_total)}`,
-        )
-
+        .map((i, index) => {
+          const selected = cart[index];
+          const variantDetails = selected?.variant
+            ? ` | Modelo: ${selected.variant.sku || selected.variant.id} | Color: ${selected.variant.color || "No especificado"} | Talla: ${selected.variant.size || "No especificada"}`
+            : "";
+          return `• ${i.name} (${i.code})${variantDetails} | ${i.quantity} x ${money(i.unit_price)} = ${money(i.line_total)}`;
+        })
         .join("\n");
 
       const message = `Hola, deseo realizar este pedido en DIVINAS IMPORT.
@@ -761,6 +813,30 @@ Quedo pendiente de confirmar envío o entrega.`;
 
   return (
     <div className="app">
+      <style>{`
+        .storeImageOverlay,.storeOptionsOverlay{position:fixed;inset:0;z-index:3000;background:rgba(20,15,22,.82);display:flex;align-items:center;justify-content:center;padding:18px}
+        .storeImageOverlay{flex-direction:column;gap:12px}
+        .storeImageOverlay img{max-width:min(92vw,900px);max-height:82vh;object-fit:contain;border-radius:12px;background:#fff}
+        .storeImageOverlay span{color:#fff;font-weight:600}
+        .storeImageClose,.storeOptionsClose{position:absolute;top:14px;right:18px;border:0;border-radius:50%;width:42px;height:42px;font-size:30px;line-height:1;background:#fff;color:#241b28;cursor:pointer}
+        .storeOptionsOverlay{background:rgba(20,15,22,.62);overflow-y:auto}
+        .storeOptionsModal{position:relative;background:#fff;color:#241b28;width:min(100%,520px);max-height:92vh;overflow-y:auto;border-radius:18px;padding:26px;box-shadow:0 18px 60px rgba(0,0,0,.25)}
+        .storeOptionsProduct{display:flex;align-items:center;gap:16px;padding-right:34px;margin-bottom:22px}
+        .storeOptionsProduct img{width:112px;height:132px;object-fit:cover;border-radius:12px}
+        .storeOptionsProduct small{color:#884798}.storeOptionsProduct h2{font-size:20px;margin:6px 0}
+        .storeOptionsProduct strong{color:#884798;font-size:20px}
+        .storeOptionField{display:flex;flex-direction:column;gap:8px;font-weight:600;margin:16px 0}
+        .storeOptionField select,.storeQtySelector input{width:100%;padding:11px;border:1px solid #d8cbdc;border-radius:9px;background:#fff;color:#241b28}
+        .storeVariantInfo{display:grid;grid-template-columns:1fr 1fr;gap:10px;padding:14px;background:#faf7fb;border-radius:10px;font-size:13px}
+        .storeQtySelector{display:flex;align-items:center;gap:12px}
+        .storeQtySelector button{width:40px;height:40px;border:1px solid #884798;border-radius:8px;background:#fff;color:#884798;display:grid;place-items:center}
+        .storeQtySelector button:disabled,.storeOptionsAdd:disabled{opacity:.4;cursor:not-allowed}
+        .storeQtySelector input{max-width:90px;text-align:center}
+        .storeOptionsAdd{width:100%;border:0;border-radius:10px;padding:14px;background:#884798;color:#fff;font-weight:700;cursor:pointer;margin-top:12px}
+        .storeOutOfStock{color:#b42318;font-weight:600}.storeStockNote{display:block;color:#756b78;font-size:12px;line-height:1.45;margin-top:12px}
+        .qty button:disabled{opacity:.35;cursor:not-allowed}
+        @media(max-width:560px){.storeOptionsModal{padding:22px 16px;border-radius:16px}.storeOptionsProduct img{width:88px;height:110px}.storeOptionsProduct h2{font-size:17px}.storeImageOverlay img{max-width:96vw;max-height:78vh}}
+      `}</style>
            {" "}
       <header className="top">
                {" "}
@@ -939,14 +1015,22 @@ Quedo pendiente de confirmar envío o entrega.`;
                         {pct > 0 && <label className="sale">-{pct}%</label>}   
                                            {" "}
                         {p.image_url ? (
-                          <img src={p.image_url} />
+                          <img
+                            src={p.image_url}
+                            alt={p.name}
+                            onClick={() => setImageViewer(p)}
+                            style={{ cursor: "zoom-in" }}
+                          />
                         ) : (
                           <div className="placeholder">DIVINAS</div>
                         )}
                                                {" "}
-                        <button className="quick" onClick={() => add(p)}>
-                                                    Agregar al carrito          
-                                       {" "}
+                        <button
+                          className="quick"
+                          onClick={() => openProductOptions(p)}
+                        >
+                                                    Seleccionar opciones        
+                                         {" "}
                         </button>
                                              {" "}
                       </div>
@@ -958,7 +1042,10 @@ Quedo pendiente de confirmar envío o entrega.`;
                                 <b>{money(price)}</b>                     {" "}
                       </div>
                                            {" "}
-                      <button className="add" onClick={() => add(p)}>
+                      <button
+                        className="add"
+                        onClick={() => openProductOptions(p)}
+                      >
                                                 Añadir <Plus size={15} />       
                                      {" "}
                       </button>
@@ -1033,10 +1120,17 @@ Quedo pendiente de confirmar envío o entrega.`;
                       </button>
                                             {x.qty}                     {" "}
                       <button
+                        disabled={
+                          !x.variant || x.qty >= Number(x.variant.stock || 0)
+                        }
+                        title="No hay más unidades disponibles"
                         onClick={() =>
                           setCart((c) =>
                             c.map((i) =>
-                              i.key === x.key ? { ...i, qty: i.qty + 1 } : i,
+                              i.key === x.key &&
+                              i.qty < Number(i.variant?.stock || 0)
+                                ? { ...i, qty: i.qty + 1 }
+                                : i,
                             ),
                           )
                         }
@@ -1044,6 +1138,9 @@ Quedo pendiente de confirmar envío o entrega.`;
                                                 <Plus />                   
                          {" "}
                       </button>
+                      <small>
+                        Stock: {Math.max(0, Number(x.variant?.stock || 0))}
+                      </small>
                                            {" "}
                       <button
                         onClick={() =>
@@ -1519,6 +1616,158 @@ Quedo pendiente de confirmar envío o entrega.`;
         </div>
       )}
            {" "}
+      {imageViewer && (
+        <div className="storeImageOverlay" onClick={() => setImageViewer(null)}>
+          <button
+            type="button"
+            className="storeImageClose"
+            onClick={() => setImageViewer(null)}
+          >
+            ×
+          </button>
+          <img
+            src={imageViewer.image_url}
+            alt={imageViewer.name}
+            onClick={(e) => e.stopPropagation()}
+          />
+          <span>{imageViewer.name}</span>
+        </div>
+      )}
+      {optionProduct && (
+        <div
+          className="storeOptionsOverlay"
+          onClick={() => setOptionProduct(null)}
+        >
+          <section
+            className="storeOptionsModal"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <button
+              type="button"
+              className="storeOptionsClose"
+              onClick={() => setOptionProduct(null)}
+            >
+              ×
+            </button>
+            <div className="storeOptionsProduct">
+              {optionProduct.image_url && (
+                <img src={optionProduct.image_url} alt={optionProduct.name} />
+              )}
+              <div>
+                <small>{optionProduct.code}</small>
+                <h2>{optionProduct.name}</h2>
+                <strong>
+                  {money(
+                    promoPrice(
+                      optionProduct.price,
+                      activeDiscount(optionProduct),
+                    ),
+                  )}
+                </strong>
+              </div>
+            </div>
+            <label className="storeOptionField">
+              Modelo, color y talla
+              <select
+                value={selectedVariantId}
+                onChange={(e) => {
+                  setSelectedVariantId(e.target.value);
+                  setSelectedQty(1);
+                }}
+              >
+                {variants
+                  .filter((v) => v.product_id === optionProduct.id)
+                  .map((v) => (
+                    <option key={v.id} value={v.id}>
+                      {v.sku || "Modelo"} · {v.color || "Sin color"} · Talla{" "}
+                      {v.size || "Única"} · Stock: {Number(v.stock || 0)}
+                    </option>
+                  ))}
+              </select>
+            </label>
+            {selectedVariant ? (
+              <>
+                <div className="storeVariantInfo">
+                  <span>
+                    Modelo: <b>{selectedVariant.sku || selectedVariant.id}</b>
+                  </span>
+                  <span>
+                    Color: <b>{selectedVariant.color || "No especificado"}</b>
+                  </span>
+                  <span>
+                    Talla: <b>{selectedVariant.size || "Única"}</b>
+                  </span>
+                  <span>
+                    Disponible: <b>{selectedStock}</b>
+                  </span>
+                </div>
+                {remainingSelectedStock > 0 ? (
+                  <label className="storeOptionField">
+                    Cantidad
+                    <div className="storeQtySelector">
+                      <button
+                        type="button"
+                        disabled={selectedQty <= 1}
+                        onClick={() =>
+                          setSelectedQty((q) => Math.max(1, q - 1))
+                        }
+                      >
+                        <Minus size={16} />
+                      </button>
+                      <input
+                        type="number"
+                        min="1"
+                        max={remainingSelectedStock}
+                        value={selectedQty}
+                        onChange={(e) => {
+                          const value = Number(e.target.value);
+                          setSelectedQty(
+                            Math.min(
+                              remainingSelectedStock,
+                              Math.max(1, Number.isFinite(value) ? value : 1),
+                            ),
+                          );
+                        }}
+                      />
+                      <button
+                        type="button"
+                        disabled={selectedQty >= remainingSelectedStock}
+                        onClick={() =>
+                          setSelectedQty((q) =>
+                            Math.min(remainingSelectedStock, q + 1),
+                          )
+                        }
+                      >
+                        <Plus size={16} />
+                      </button>
+                    </div>
+                  </label>
+                ) : (
+                  <p className="storeOutOfStock">
+                    Agotado para esta combinación.
+                  </p>
+                )}
+              </>
+            ) : (
+              <p className="storeOutOfStock">
+                Este producto no tiene variantes registradas.
+              </p>
+            )}
+            <button
+              type="button"
+              className="storeOptionsAdd"
+              disabled={!selectedVariant || remainingSelectedStock < 1}
+              onClick={addSelectedToCart}
+            >
+              Agregar al carrito
+            </button>
+            <small className="storeStockNote">
+              La proforma no reserva ni descuenta inventario. El stock se valida
+              nuevamente al confirmar la venta.
+            </small>
+          </section>
+        </div>
+      )}
       {modal && (
         <div className="overlay">
                    {" "}
@@ -1571,8 +1820,10 @@ Quedo pendiente de confirmar envío o entrega.`;
                 onChange={(e) => setForm({ ...form, category: e.target.value })}
               >
                                {" "}
-                {CATS.map((c) => (
-                  <option>{c}</option>
+                {categories.map((c) => (
+                  <option key={c.id} value={c.name}>
+                    {c.name}
+                  </option>
                 ))}
                              {" "}
               </select>
