@@ -142,6 +142,8 @@ function App() {
       end_at: "",
     });
 
+  const [editingDiscountId, setEditingDiscountId] = useState(null);
+
   async function load() {
     if (!supabase) {
       setLoading(false);
@@ -164,7 +166,10 @@ function App() {
 
       supabase.from("categories").select("*").order("name"),
 
-      supabase.from("category_discounts").select("*").eq("is_active", true),
+      supabase
+        .from("category_discounts")
+        .select("*")
+        .order("created_at", { ascending: false }),
 
       supabase.from("product_variants").select("*"),
     ]);
@@ -224,7 +229,9 @@ function App() {
   }, []);
 
   const activeDiscount = (product) => {
-    const d = discounts.find((x) => x.category_id === product.category_id);
+    const d = discounts.find(
+      (x) => x.category_id === product.category_id && x.is_active,
+    );
 
     return d ? Number(d.percentage) : 0;
   };
@@ -611,38 +618,89 @@ Quedo pendiente de confirmar envío o entrega.`;
   async function createDiscount(e) {
     e.preventDefault();
 
-    const { error } = await supabase.from("category_discounts").insert({
-      name: discountForm.name,
-
+    const wasEditing = Boolean(editingDiscountId);
+    const payload = {
+      name: discountForm.name.trim(),
       category_id: discountForm.category_id,
-
       percentage: Number(discountForm.percentage),
-
       start_at: discountForm.start_at || null,
-
       end_at: discountForm.end_at || null,
+    };
 
-      is_active: true,
-    });
-
-    if (error) alert(error.message);
-    else {
-      setDiscountForm({
-        name: "Black Weekend",
-
-        category_id: "",
-
-        percentage: 10,
-
-        start_at: "",
-
-        end_at: "",
-      });
-
-      load();
-
-      setMessage("Descuento publicado en la tienda");
+    if (!payload.name || !payload.category_id) {
+      alert("Ingresa el nombre y selecciona una categoría.");
+      return;
     }
+
+    const result = wasEditing
+      ? await supabase
+          .from("category_discounts")
+          .update(payload)
+          .eq("id", editingDiscountId)
+      : await supabase
+          .from("category_discounts")
+          .insert({ ...payload, is_active: true });
+
+    if (result.error) {
+      alert(result.error.message);
+      return;
+    }
+
+    setDiscountForm({
+      name: "Black Weekend",
+      category_id: "",
+      percentage: 10,
+      start_at: "",
+      end_at: "",
+    });
+    setEditingDiscountId(null);
+
+    await load();
+    setMessage(
+      wasEditing
+        ? "Descuento actualizado correctamente"
+        : "Descuento publicado en la tienda",
+    );
+  }
+
+  async function toggleDiscount(discount) {
+    const { error } = await supabase
+      .from("category_discounts")
+      .update({ is_active: !discount.is_active })
+      .eq("id", discount.id);
+
+    if (error) {
+      alert(error.message);
+      return;
+    }
+
+    await load();
+    setMessage(
+      discount.is_active ? "Descuento deshabilitado" : "Descuento habilitado",
+    );
+  }
+
+  function editDiscount(discount) {
+    setEditingDiscountId(discount.id);
+    setDiscountForm({
+      name: discount.name || "",
+      category_id: discount.category_id || "",
+      percentage: discount.percentage ?? 10,
+      start_at: discount.start_at || "",
+      end_at: discount.end_at || "",
+    });
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }
+
+  function cancelDiscountEdit() {
+    setEditingDiscountId(null);
+    setDiscountForm({
+      name: "Black Weekend",
+      category_id: "",
+      percentage: 10,
+      start_at: "",
+      end_at: "",
+    });
   }
 
   async function saveProforma() {
@@ -814,6 +872,21 @@ Quedo pendiente de confirmar envío o entrega.`;
   return (
     <div className="app">
       <style>{`
+        .discountFormActions{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+        .discountCancel,.discountActions button{border:0;border-radius:8px;padding:10px 14px;font-weight:700;cursor:pointer}
+        .discountCancel{background:#f1edf2;color:#5f5263}
+        .discountList{display:grid;gap:12px;margin-top:18px}
+        .discountItem{display:flex;justify-content:space-between;align-items:center;gap:15px;padding:16px;background:#fff;border:1px solid #eadced;border-radius:12px}
+        .discountInfo strong{color:#884798;font-size:15px}
+        .discountInfo p{margin:5px 0;color:#76647b;font-size:13px}
+        .discountStatus{font-size:11px;font-weight:800}
+        .discountActive{color:#16834a}
+        .discountInactive{color:#999}
+        .discountActions{display:flex;flex-wrap:wrap;gap:8px}
+        .discountEdit{background:#f3eaf5;color:#884798}
+        .discountDisable{background:#fff0e6;color:#c66a16}
+        .discountEnable{background:#e8f7ed;color:#16834a}
+        @media(max-width:600px){.discountItem{align-items:flex-start;flex-direction:column}.discountActions{width:100%}}
         .storeImageOverlay,.storeOptionsOverlay{position:fixed;inset:0;z-index:3000;background:rgba(20,15,22,.82);display:flex;align-items:center;justify-content:center;padding:18px}
         .storeImageOverlay{flex-direction:column;gap:12px}
         .storeImageOverlay img{max-width:min(92vw,900px);max-height:82vh;object-fit:contain;border-radius:12px;background:#fff}
@@ -1524,80 +1597,133 @@ Quedo pendiente de confirmar envío o entrega.`;
                      {" "}
             {page === "discounts" && (
               <div className="panel">
-                                <h2>Crear descuento por categoría</h2>         
-                     {" "}
+                <h2>
+                  {editingDiscountId
+                    ? "Editar descuento"
+                    : "Crear descuento por categoría"}
+                </h2>
+
                 <form onSubmit={createDiscount} className="formgrid">
-                                   {" "}
                   <label>
-                                        Nombre                    {" "}
+                    Nombre
                     <input
+                      required
                       value={discountForm.name}
                       onChange={(e) =>
                         setDiscountForm({
                           ...discountForm,
-
                           name: e.target.value,
                         })
                       }
                     />
-                                     {" "}
                   </label>
-                                   {" "}
+
                   <label>
-                                        Categoría                    {" "}
+                    Categoría
                     <select
                       required
                       value={discountForm.category_id}
                       onChange={(e) =>
                         setDiscountForm({
                           ...discountForm,
-
                           category_id: e.target.value,
                         })
                       }
                     >
-                                            <option value="">Selecciona</option>
-                                           {" "}
+                      <option value="">Selecciona</option>
                       {categories.map((c) => (
-                        <option value={c.id}>{c.name}</option>
+                        <option key={c.id} value={c.id}>
+                          {c.name}
+                        </option>
                       ))}
-                                         {" "}
                     </select>
-                                     {" "}
                   </label>
-                                   {" "}
+
                   <label>
-                                        Porcentaje                    {" "}
+                    Porcentaje
                     <select
                       value={discountForm.percentage}
                       onChange={(e) =>
                         setDiscountForm({
                           ...discountForm,
-
                           percentage: e.target.value,
                         })
                       }
                     >
-                                           {" "}
-                      {[10, 15, 20, 25, 23].map((x) => (
-                        <option>{x}</option>
+                      {[10, 15, 20, 25].map((x) => (
+                        <option key={x} value={x}>
+                          {x}%
+                        </option>
                       ))}
-                                         {" "}
                     </select>
-                                     {" "}
                   </label>
-                                   {" "}
-                  <button className="primary">Publicar descuento</button>       
-                         {" "}
+
+                  <div className="discountFormActions">
+                    <button className="primary" type="submit">
+                      {editingDiscountId
+                        ? "Guardar cambios"
+                        : "Publicar descuento"}
+                    </button>
+                    {editingDiscountId && (
+                      <button
+                        type="button"
+                        className="discountCancel"
+                        onClick={cancelDiscountEdit}
+                      >
+                        Cancelar
+                      </button>
+                    )}
+                  </div>
                 </form>
-                                <h3>Descuentos activos</h3>               {" "}
-                {discounts.map((d) => (
-                  <p>
-                                        {d.name} · {d.percentage}%              
-                       {" "}
-                  </p>
-                ))}
-                             {" "}
+
+                <h3>Gestión de descuentos</h3>
+
+                <div className="discountList">
+                  {discounts.length === 0 ? (
+                    <p>No hay descuentos registrados.</p>
+                  ) : (
+                    discounts.map((d) => (
+                      <div className="discountItem" key={d.id}>
+                        <div className="discountInfo">
+                          <strong>{d.name}</strong>
+                          <p>
+                            {categories.find((c) => c.id === d.category_id)
+                              ?.name || "Categoría"}{" "}
+                            · {d.percentage}%
+                          </p>
+                          <span
+                            className={
+                              d.is_active
+                                ? "discountStatus discountActive"
+                                : "discountStatus discountInactive"
+                            }
+                          >
+                            {d.is_active ? "Activo" : "Deshabilitado"}
+                          </span>
+                        </div>
+
+                        <div className="discountActions">
+                          <button
+                            type="button"
+                            className="discountEdit"
+                            onClick={() => editDiscount(d)}
+                          >
+                            Editar
+                          </button>
+                          <button
+                            type="button"
+                            className={
+                              d.is_active ? "discountDisable" : "discountEnable"
+                            }
+                            onClick={() => toggleDiscount(d)}
+                          >
+                            {d.is_active ? "Deshabilitar" : "Habilitar"}
+                          </button>
+                        </div>
+                      </div>
+                    ))
+                  )}
+                </div>
               </div>
             )}
                         {page === "customers" && <Customers />}           {" "}
