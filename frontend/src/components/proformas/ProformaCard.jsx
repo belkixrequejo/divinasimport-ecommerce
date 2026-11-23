@@ -219,29 +219,36 @@ export default function ProformaCard({
         </label>
 
         <div className="proformaItems">
-          {items.map((item) => (
-            <div key={item.id}>
-              <div className="proformaItemDescription">
-                <strong>
-                  {item.products?.name ||
-                    item.product_name_snapshot ||
-                    item.product_name ||
-                    "Producto"}
-                </strong>
-                {item.product_variants && (
-                  <small>
-                    Modelo: {item.product_variants.sku || "—"} · Color:{" "}
-                    {item.product_variants.color || "—"} · Talla:{" "}
-                    {item.product_variants.size || "—"}
-                  </small>
-                )}
-              </div>
+          {items.map((item) => {
+            const imageUrl = item.products?.image_url || item.image_url || "";
+            const productName =
+              item.products?.name ||
+              item.product_name_snapshot ||
+              item.product_name ||
+              "Producto";
 
-              <span>
-                {item.quantity} × {money(item.unit_price)}
-              </span>
-            </div>
-          ))}
+            return (
+              <div className="proformaCardItem" key={item.id}>
+                <div className="proformaCardItemInfo">
+                  <span>{productName}</span>
+                  {item.product_variants && (
+                    <small>
+                      Talla: {item.product_variants.size || "—"} · Color:{" "}
+                      {item.product_variants.color || "—"}
+                    </small>
+                  )}
+                  <small>
+                    {item.quantity} × {money(item.unit_price)}
+                  </small>
+                </div>
+                <strong>
+                  {money(
+                    Number(item.unit_price || 0) * Number(item.quantity || 0),
+                  )}
+                </strong>
+              </div>
+            );
+          })}
         </div>
 
         <div className="proformaDownloadActions">

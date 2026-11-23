@@ -505,6 +505,186 @@ app.get("/api/admin/customers", auth, async (req, res) => {
 // MANEJO DE ERRORES
 // ========================================
 
+
+/* ========================================
+   APARTADOS - CREAR DESDE PROFORMA
+======================================== */
+
+app.post("/api/admin/proformas/:id/layaway", auth, async (req, res) => {
+  try {
+    const { initial_payment, payment_method, payment_reference } = req.body || {};
+    const amount = Number(initial_payment);
+
+    if (!Number.isFinite(amount) || amount <= 0)
+      return res.status(400).json({ error: "El abono inicial debe ser mayor a cero." });
+
+    if (!["EFECTIVO", "TRANSFERENCIA", "TARJETA", "CONTRA_ENTREGA"].includes(payment_method))
+      return res.status(400).json({ error: "Método de pago no válido." });
+
+    const { data, error } = await db.rpc("create_layaway_from_proforma", {
+      p_proforma_id: req.params.id,
+      p_initial_payment: amount,
+      p_payment_method: payment_method,
+      p_payment_reference: payment_reference || null,
+      p_user_id: req.user.id,
+    });
+
+    if (error) throw error;
+    res.status(201).json(data);
+  } catch (e) {
+    console.error("ERROR CREANDO APARTADO:", e);
+    res.status(400).json({ error: e.message });
+  }
+});
+
+/* ========================================
+   APARTADOS - LISTAR
+======================================== */
+
+app.get("/api/admin/layaways", auth, async (req, res) => {
+  try {
+    const allowed = ["ACTIVO", "COMPLETADO", "VENCIDO", "CANCELADO"];
+    let query = db.from("layaways")
+      .select("*, customers(*), proformas(*)")
+      .order("expires_at", { ascending: true });
+
+    if (req.query.status) {
+      if (!allowed.includes(req.query.status))
+        return res.status(400).json({ error: "Estado no válido." });
+      query = query.eq("status", req.query.status);
+    }
+
+    const { data, error } = await query;
+    if (error) throw error;
+    res.json(data);
+  } catch (e) {
+    console.error("ERROR LISTANDO APARTADOS:", e);
+    res.status(400).json({ error: e.message });
+  }
+});
+
+/* ========================================
+   APARTADOS - DETALLE E HISTORIAL
+======================================== */
+
+app.get("/api/admin/layaways/:id", auth, async (req, res) => {
+  try {
+    const { data, error } = await db.from("layaways")
+      .select("*, customers(*), proformas(*, proforma_items(*)), layaway_payments(*)")
+      .eq("id", req.params.id)
+      .single();
+
+    if (error) throw error;
+    res.json(data);
+  } catch (e) {
+    console.error("ERROR OBTENIENDO APARTADO:", e);
+    res.status(400).json({ error: e.message });
+  }
+});
+
+/* ========================================
+   APARTADOS - REGISTRAR ABONO
+======================================== */
+
+app.post("/api/admin/layaways/:id/payments", auth, async (req, res) => {
+  try {
+    const { amount, payment_method, payment_reference } = req.body || {};
+    const paymentAmount = Number(amount);
+
+    if (!Number.isFinite(paymentAmount) || paymentAmount <= 0)
+      return res.status(400).json({ error: "El abono debe ser mayor a cero." });
+
+    if (!["EFECTIVO", "TRANSFERENCIA", "TARJETA", "CONTRA_ENTREGA"].includes(payment_method))
+      return res.status(400).json({ error: "Método de pago no válido." });
+
+    const { data, error } = await db.rpc("register_layaway_payment", {
+      p_layaway_id: req.params.id,
+      p_amount: paymentAmount,
+      p_payment_method: payment_method,
+      p_payment_reference: payment_reference || null,
+      p_user_id: req.user.id,
+    });
+
+    if (error) throw error;
+    res.json(data);
+  } catch (e) {
+    console.error("ERROR REGISTRANDO ABONO:", e);
+    res.status(400).json({ error: e.message });
+  }
+});
+
+/* ========================================
+   APARTADOS - AGREGAR PRODUCTOS
+======================================== */
+
+app.post("/api/admin/layaways/:id/items", auth, async (req, res) => {
+  try {
+    const { items } = req.body || {};
+
+    if (!Array.isArray(items) || !items.length)
+      return res.status(400).json({ error: "Debes seleccionar productos." });
+
+    const { data, error } = await db.rpc("add_items_to_layaway", {
+      p_layaway_id: req.params.id,
+      p_items: items,
+      p_user_id: req.user.id,
+    });
+
+    if (error) throw error;
+    res.json(data);
+  } catch (e) {
+    console.error("ERROR AGREGANDO PRODUCTOS:", e);
+    res.status(400).json({ error: e.message });
+  }
+});
+
+/* ========================================
+   APARTADOS - CONVERTIR EN VENTA
+======================================== */
+
+app.post("/api/admin/layaways/:id/convert", auth, async (req, res) => {
+  try {
+    const { final_payment_method, final_payment_reference } = req.body || {};
+
+    if (final_payment_method &&
+      !["EFECTIVO", "TRANSFERENCIA", "TARJETA", "CONTRA_ENTREGA"].includes(final_payment_method))
+      return res.status(400).json({ error: "Método de pago final no válido." });
+
+    const { data, error } = await db.rpc("convert_layaway_to_sale", {
+      p_layaway_id: req.params.id,
+      p_user_id: req.user.id,
+      p_final_payment_method: final_payment_method || null,
+      p_final_payment_reference: final_payment_reference || null,
+    });
+
+    if (error) throw error;
+    res.json(data);
+  } catch (e) {
+    console.error("ERROR CONVIRTIENDO APARTADO:", e);
+    res.status(400).json({ error: e.message });
+  }
+});
+
+/* ========================================
+   APARTADOS - CANCELAR
+======================================== */
+
+app.patch("/api/admin/layaways/:id/cancel", auth, async (req, res) => {
+  try {
+    const { data, error } = await db.rpc("close_layaway", {
+      p_layaway_id: req.params.id,
+      p_action: "CANCELAR",
+      p_user_id: req.user.id,
+    });
+
+    if (error) throw error;
+    res.json(data);
+  } catch (e) {
+    console.error("ERROR CANCELANDO APARTADO:", e);
+    res.status(400).json({ error: e.message });
+  }
+});
+
 app.use((err, req, res, next) => {
   console.error("ERROR GENERAL:", err);
 

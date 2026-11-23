@@ -1,11 +1,13 @@
 import { useEffect, useState } from "react";
 import { money, round50 } from "./utils";
+import { supabase } from "../../supabase";
 
 export default function ProformaForm({
   products,
   discounts,
   variants = [],
   proforma,
+  initialDraft = null,
   onSave,
   onClose,
 }) {
@@ -19,11 +21,77 @@ export default function ProformaForm({
   const [productCode, setProductCode] = useState("");
   const [searchResults, setSearchResults] = useState([]);
   const [saving, setSaving] = useState(false);
+  const [imagePreview, setImagePreview] = useState(null);
+  const [customers, setCustomers] = useState([]);
+  const [customerSearch, setCustomerSearch] = useState("");
+  const [showCustomerResults, setShowCustomerResults] = useState(false);
+  const [loadingCustomers, setLoadingCustomers] = useState(false);
 
   // NUEVOS CAMPOS DE ENVÍO
   const [deliveryType, setDeliveryType] = useState("POR_DEFINIR");
   const [shippingCost, setShippingCost] = useState("0");
   const [collectionType, setCollectionType] = useState("PREPAID");
+
+  // Cargar clientes registrados para poder seleccionarlos por nombre o teléfono.
+  useEffect(() => {
+    let active = true;
+
+    async function loadCustomers() {
+      try {
+        setLoadingCustomers(true);
+        const { data } = await supabase.auth.getSession();
+        const token = data.session?.access_token || "";
+        const api = import.meta.env.VITE_API_URL;
+
+        if (!api) return;
+
+        const response = await fetch(
+          `${api.replace(/\/$/, "")}/admin/customers`,
+          {
+            headers: { Authorization: `Bearer ${token}` },
+          },
+        );
+        const result = await response.json().catch(() => []);
+
+        if (!response.ok) {
+          throw new Error(
+            result.error || "No se pudieron cargar los clientes.",
+          );
+        }
+
+        if (active) setCustomers(Array.isArray(result) ? result : []);
+      } catch (error) {
+        console.error("Error cargando clientes:", error);
+      } finally {
+        if (active) setLoadingCustomers(false);
+      }
+    }
+
+    loadCustomers();
+    return () => {
+      active = false;
+    };
+  }, []);
+
+  const filteredCustomers = customers
+    .filter((item) => {
+      const term = customerSearch.trim().toLowerCase();
+      if (!term) return false;
+      return `${item.full_name || ""} ${item.phone || ""} ${item.city || ""}`
+        .toLowerCase()
+        .includes(term);
+    })
+    .slice(0, 8);
+
+  function selectCustomer(item) {
+    setCustomer({
+      full_name: item.full_name || "",
+      phone: item.phone || "",
+      city: item.city || "",
+    });
+    setCustomerSearch(item.full_name || "");
+    setShowCustomerResults(false);
+  }
 
   // Cargar información de la proforma al editar
   useEffect(() => {
@@ -33,6 +101,7 @@ export default function ProformaForm({
         phone: proforma.customers?.phone || "",
         city: proforma.customers?.city || "",
       });
+      setCustomerSearch(proforma.customers?.full_name || "");
 
       setItems(
         (proforma.proforma_items || []).map((item) => ({
@@ -45,8 +114,21 @@ export default function ProformaForm({
             item.product_name_snapshot ||
             item.product_name ||
             "",
+          image_url:
+            item.products?.image_url ||
+            products.find(
+              (product) => String(product.id) === String(item.product_id),
+            )?.image_url ||
+            "",
           quantity: Number(item.quantity),
           unit_price: Number(item.unit_price),
+          regular_unit_price: Number(
+            item.regular_unit_price ??
+              products.find(
+                (product) => String(product.id) === String(item.product_id),
+              )?.price ??
+              item.unit_price,
+          ),
           discount_percent: Number(item.discount_percent || 0),
         })),
       );
@@ -55,16 +137,53 @@ export default function ProformaForm({
       setDeliveryType(proforma.delivery_type || "POR_DEFINIR");
       setShippingCost(String(proforma.shipping_cost ?? 0));
       setCollectionType(proforma.collection_type || "PREPAID");
+    } else if (initialDraft) {
+      setCustomer({
+        full_name: initialDraft.customer?.full_name || "",
+        phone: initialDraft.customer?.phone || "",
+        city: initialDraft.customer?.city || "",
+      });
+      setCustomerSearch(initialDraft.customer?.full_name || "");
+
+      setItems(
+        (initialDraft.items || []).map((item) => {
+          const product = products.find(
+            (p) => String(p.id) === String(item.product_id),
+          );
+          const variant =
+            variants.find((v) => String(v.id) === String(item.variant_id)) ||
+            item.variant ||
+            null;
+          return {
+            line_key: `${item.product_id}:${item.variant_id || "sin-variante"}`,
+            product_id: item.product_id,
+            variant_id: item.variant_id || null,
+            variant,
+            name: item.name || product?.name || "Producto",
+            image_url: item.image_url || product?.image_url || "",
+            quantity: Math.max(1, Number(item.quantity) || 1),
+            unit_price: Number(item.unit_price ?? product?.price ?? 0),
+            regular_unit_price: Number(
+              item.regular_unit_price ?? item.unit_price ?? product?.price ?? 0,
+            ),
+            discount_percent: Number(item.discount_percent || 0),
+          };
+        }),
+      );
+
+      setDeliveryType(initialDraft.delivery_type || "POR_DEFINIR");
+      setShippingCost(String(initialDraft.shipping_cost ?? 0));
+      setCollectionType(initialDraft.collection_type || "PREPAID");
     } else {
       setCustomer({
         full_name: "",
         phone: "",
         city: "",
       });
+      setCustomerSearch("");
 
       setItems([]);
 
-      // Valores iniciales
       setDeliveryType("POR_DEFINIR");
       setShippingCost("0");
       setCollectionType("PREPAID");
@@ -72,19 +191,21 @@ export default function ProformaForm({
 
     setProductCode("");
     setSearchResults([]);
-  }, [proforma]);
+  }, [proforma, initialDraft, products, variants]);
 
-  // Agregar producto con una variante concreta (talla/color).
+  // Agregar producto mostrando el precio con el descuento vigente.
+  // El resumen final se calcula con el precio normal, sin descuento.
   function addProduct(productId) {
     const product = products.find((p) => String(p.id) === String(productId));
 
     if (!product) return;
 
     const discount = discounts.find(
-      (d) => d.category_id === product.category_id,
+      (d) => d.category_id === product.category_id && d.is_active !== false,
     );
     const percentage = Number(discount?.percentage || 0);
-    const price = round50(Number(product.price) * (1 - percentage / 100));
+    const regularPrice = round50(Number(product.price));
+    const discountedPrice = round50(regularPrice * (1 - percentage / 100));
 
     const productVariants = variants.filter(
       (variant) => String(variant.product_id) === String(product.id),
@@ -115,8 +236,10 @@ export default function ProformaForm({
           variant_id: variantId,
           variant: selectedVariant,
           name: product.name,
+          image_url: product.image_url || "",
           quantity: 1,
-          unit_price: price,
+          unit_price: discountedPrice,
+          regular_unit_price: regularPrice,
           discount_percent: percentage,
         },
       ];
@@ -219,11 +342,11 @@ export default function ProformaForm({
     }
   }
 
-  // Actualizar cantidad
+  // Actualizar cantidad de una línea específica.
   function updateQuantity(lineKey, quantity) {
     setItems((current) =>
       current.map((item) =>
-        item.product_id === productId
+        item.line_key === lineKey
           ? {
               ...item,
               quantity: Math.max(1, Number(quantity) || 1),
@@ -238,28 +361,42 @@ export default function ProformaForm({
     setItems((current) => current.filter((item) => item.line_key !== lineKey));
   }
 
-  // Calcular total de productos
-  const productsTotal = items.reduce(
+  // Totales: se muestran ambos valores para distinguir el precio normal
+  // del valor promocional que realmente pagará el cliente.
+  const subtotalWithoutDiscount = items.reduce(
+    (sum, item) =>
+      sum +
+      Number(item.regular_unit_price ?? item.unit_price) *
+        Number(item.quantity),
+    0,
+  );
+
+  const subtotalWithDiscount = items.reduce(
     (sum, item) => sum + Number(item.unit_price) * Number(item.quantity),
     0,
+  );
+
+  const discountTotal = Math.max(
+    0,
+    subtotalWithoutDiscount - subtotalWithDiscount,
   );
 
   // Calcular envío
   const shipping =
     deliveryType === "ENVIO" ? Math.max(0, Number(shippingCost) || 0) : 0;
 
-  // Total general
-  const total = productsTotal + shipping;
+  const totalWithoutDiscount = subtotalWithoutDiscount + shipping;
+  const totalToPay = subtotalWithDiscount + shipping;
 
   // Valores que paga cada parte
   const amountToDivinas =
     deliveryType === "ENVIO" && collectionType === "CONTRA_ENTREGA"
       ? shipping
-      : total;
+      : totalToPay;
 
   const amountToCarrier =
     deliveryType === "ENVIO" && collectionType === "CONTRA_ENTREGA"
-      ? productsTotal
+      ? subtotalWithDiscount
       : 0;
 
   // Guardar proforma
@@ -301,6 +438,7 @@ export default function ProformaForm({
           variant_id: item.variant_id,
           quantity: item.quantity,
           unit_price: item.unit_price,
+          regular_unit_price: item.regular_unit_price ?? item.unit_price,
           discount_percent: item.discount_percent,
         })),
 
@@ -344,6 +482,75 @@ export default function ProformaForm({
 
         {/* DATOS DEL CLIENTE */}
         <div className="proformaCustomerFields">
+          <div
+            className="proformaCustomerSearch"
+            style={{ position: "relative", gridColumn: "1 / -1" }}
+          >
+            <label htmlFor="customerSearch">Buscar cliente existente</label>
+            <input
+              id="customerSearch"
+              type="text"
+              placeholder="Escribe el nombre o teléfono del cliente..."
+              value={customerSearch}
+              onChange={(e) => {
+                const value = e.target.value;
+                setCustomerSearch(value);
+                setShowCustomerResults(true);
+                if (!value.trim()) {
+                  setCustomer({ full_name: "", phone: "", city: "" });
+                }
+              }}
+              onFocus={() => setShowCustomerResults(true)}
+              autoComplete="off"
+              disabled={saving}
+            />
+            {showCustomerResults && customerSearch.trim() && (
+              <div
+                className="proformaSearchResults"
+                style={{
+                  position: "absolute",
+                  zIndex: 20,
+                  top: "100%",
+                  left: 0,
+                  right: 0,
+                  maxHeight: 220,
+                  overflowY: "auto",
+                  background: "#fff",
+                  boxShadow: "0 8px 24px rgba(0,0,0,.12)",
+                }}
+              >
+                {filteredCustomers.length ? (
+                  filteredCustomers.map((item) => (
+                    <button
+                      type="button"
+                      key={item.id}
+                      className="proformaSearchResult"
+                      onClick={() => selectCustomer(item)}
+                    >
+                      <span>
+                        <strong>{item.full_name}</strong>
+                        <small>
+                          {item.phone || "Sin teléfono"} ·{" "}
+                          {item.city || "Sin ciudad"}
+                        </small>
+                      </span>
+                      <b>Seleccionar</b>
+                    </button>
+                  ))
+                ) : (
+                  <p style={{ padding: 12, margin: 0 }}>
+                    {loadingCustomers
+                      ? "Cargando clientes..."
+                      : "No se encontraron clientes registrados."}
+                  </p>
+                )}
+              </div>
+            )}
+            <small>
+              También puedes escribir los datos de un cliente nuevo abajo.
+            </small>
+          </div>
+
           <label>
             Nombre del cliente
             <input
@@ -351,12 +558,10 @@ export default function ProformaForm({
               type="text"
               placeholder="Nombre completo"
               value={customer.full_name}
-              onChange={(e) =>
-                setCustomer({
-                  ...customer,
-                  full_name: e.target.value,
-                })
-              }
+              onChange={(e) => {
+                setCustomer({ ...customer, full_name: e.target.value });
+                setCustomerSearch(e.target.value);
+              }}
             />
           </label>
 
@@ -367,10 +572,7 @@ export default function ProformaForm({
               placeholder="Número de teléfono"
               value={customer.phone}
               onChange={(e) =>
-                setCustomer({
-                  ...customer,
-                  phone: e.target.value,
-                })
+                setCustomer({ ...customer, phone: e.target.value })
               }
             />
           </label>
@@ -383,10 +585,7 @@ export default function ProformaForm({
               placeholder="Ciudad del cliente"
               value={customer.city}
               onChange={(e) =>
-                setCustomer({
-                  ...customer,
-                  city: e.target.value,
-                })
+                setCustomer({ ...customer, city: e.target.value })
               }
             />
           </label>
@@ -456,6 +655,25 @@ export default function ProformaForm({
                     `${item.product_id}:${item.variant_id || "sin-variante"}`
                   }
                 >
+                  {proforma && item.image_url && (
+                    <button
+                      type="button"
+                      className="proformaImageThumb"
+                      onClick={() =>
+                        setImagePreview({
+                          url: item.image_url,
+                          name: item.name,
+                        })
+                      }
+                      aria-label={`Ampliar fotografía de ${item.name}`}
+                    >
+                      <img
+                        src={item.image_url}
+                        alt={item.name}
+                        loading="lazy"
+                      />
+                    </button>
+                  )}
                   <div className="proformaItemInfo">
                     <strong>{item.name}</strong>
                     {(() => {
@@ -512,7 +730,7 @@ export default function ProformaForm({
                   </div>
 
                   <div className="proformaItemPrice">
-                    <small>Subtotal</small>
+                    <small>Subtotal con descuento</small>
                     <b>{money(item.unit_price * item.quantity)}</b>
                   </div>
 
@@ -594,9 +812,16 @@ export default function ProformaForm({
         {/* TOTALES */}
         <div className="proformaTotals">
           <div>
-            <span>Subtotal de productos</span>
-            <strong>{money(productsTotal)}</strong>
+            <span>Subtotal sin descuento</span>
+            <strong>{money(subtotalWithoutDiscount)}</strong>
           </div>
+
+          {discountTotal > 0 && (
+            <div>
+              <span>Descuento aplicado</span>
+              <strong>-{money(discountTotal)}</strong>
+            </div>
+          )}
 
           <div>
             <span>Valor del envío</span>
@@ -604,8 +829,13 @@ export default function ProformaForm({
           </div>
 
           <div>
-            <span>Total de la proforma</span>
-            <strong>{money(total)}</strong>
+            <span>Total con descuento</span>
+            <strong>{money(totalToPay)}</strong>
+          </div>
+
+          <div className="proformaPayableTotal">
+            <span>Total a pagar</span>
+            <strong>{money(totalToPay)}</strong>
           </div>
 
           {deliveryType === "ENVIO" && (
@@ -643,6 +873,28 @@ export default function ProformaForm({
           </button>
         </div>
       </form>
+
+      {imagePreview && (
+        <div
+          className="proformaImagePreviewOverlay"
+          onClick={() => setImagePreview(null)}
+        >
+          <button
+            type="button"
+            className="proformaImagePreviewClose"
+            onClick={() => setImagePreview(null)}
+            aria-label="Cerrar"
+          >
+            ×
+          </button>
+          <img
+            src={imagePreview.url}
+            alt={imagePreview.name}
+            onClick={(e) => e.stopPropagation()}
+          />
+          <strong>{imagePreview.name}</strong>
+        </div>
+      )}
     </div>
   );
 }

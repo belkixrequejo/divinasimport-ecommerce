@@ -3,12 +3,20 @@ import { supabase } from "../../supabase";
 import ProformaCard from "./ProformaCard";
 import ProformaForm from "./ProformaForm";
 
-export default function Proformas({ products, discounts, onConfirmSale }) {
+export default function Proformas({
+  products,
+  discounts,
+  variants = [],
+  recoveryDraft = null,
+  onRecoveryDraftConsumed,
+  onConfirmSale,
+}) {
   const [proformas, setProformas] = useState([]);
   const [editing, setEditing] = useState(null);
+  const [initialDraft, setInitialDraft] = useState(null);
   const [showForm, setShowForm] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [variants, setVariants] = useState([]);
+  const [statusFilter, setStatusFilter] = useState("TODOS");
 
   const api = import.meta.env.VITE_API_URL;
 
@@ -42,13 +50,6 @@ export default function Proformas({ products, discounts, onConfirmSale }) {
     setLoading(true);
 
     try {
-      const { data: variantData, error: variantError } = await supabase
-        .from("product_variants")
-        .select("id, product_id, size, color, sku, stock");
-
-      if (variantError) throw variantError;
-      setVariants(variantData || []);
-
       const { data, error } = await supabase
         .from("proformas")
         .select(
@@ -78,6 +79,15 @@ export default function Proformas({ products, discounts, onConfirmSale }) {
     loadProformas();
   }, []);
 
+  useEffect(() => {
+    if (!recoveryDraft) return;
+
+    setEditing(null);
+    setInitialDraft(recoveryDraft);
+    setShowForm(true);
+    onRecoveryDraftConsumed?.();
+  }, [recoveryDraft, onRecoveryDraftConsumed]);
+
   async function saveProforma(payload) {
     try {
       if (editing) {
@@ -98,6 +108,7 @@ export default function Proformas({ products, discounts, onConfirmSale }) {
 
       setShowForm(false);
       setEditing(null);
+      setInitialDraft(null);
       await loadProformas();
     } catch (error) {
       alert(error.message);
@@ -139,14 +150,29 @@ export default function Proformas({ products, discounts, onConfirmSale }) {
       return;
     }
 
+    setInitialDraft(null);
     setEditing(proforma);
     setShowForm(true);
   }
 
   function newProforma() {
     setEditing(null);
+    setInitialDraft(null);
     setShowForm(true);
   }
+
+  // Los estados se obtienen de los registros para incluir cualquier
+  // estado nuevo que se agregue posteriormente al flujo de proformas.
+  const availableStatuses = [
+    "TODOS",
+    ...Array.from(
+      new Set(proformas.map((item) => item.status).filter(Boolean)),
+    ).sort((a, b) => a.localeCompare(b, "es")),
+  ];
+
+  const filteredProformas = proformas.filter(
+    (item) => statusFilter === "TODOS" || item.status === statusFilter,
+  );
 
   return (
     <div className="panel">
@@ -167,21 +193,54 @@ export default function Proformas({ products, discounts, onConfirmSale }) {
           discounts={discounts}
           variants={variants}
           proforma={editing}
+          initialDraft={initialDraft}
           onSave={saveProforma}
           onClose={() => {
             setShowForm(false);
             setEditing(null);
+            setInitialDraft(null);
           }}
         />
+      )}
+
+      {!loading && proformas.length > 0 && (
+        <div className="proformaStatusFilters">
+          <div className="proformaStatusFiltersHeader">
+            <span>Filtrar por estado</span>
+            <small>
+              {filteredProformas.length} de {proformas.length} proformas
+            </small>
+          </div>
+
+          <div className="proformaStatusFiltersButtons">
+            {availableStatuses.map((status) => (
+              <button
+                key={status}
+                type="button"
+                className={statusFilter === status ? "active" : ""}
+                onClick={() => setStatusFilter(status)}
+              >
+                {status === "TODOS" ? "Todos" : status}
+                {status !== "TODOS" && (
+                  <span>
+                    {proformas.filter((item) => item.status === status).length}
+                  </span>
+                )}
+              </button>
+            ))}
+          </div>
+        </div>
       )}
 
       {loading ? (
         <p>Cargando proformas...</p>
       ) : proformas.length === 0 ? (
         <p>No hay proformas registradas todavía.</p>
+      ) : filteredProformas.length === 0 ? (
+        <p>No hay proformas con el estado seleccionado.</p>
       ) : (
         <div className="proformasList">
-          {proformas.map((proforma) => (
+          {filteredProformas.map((proforma) => (
             <ProformaCard
               key={proforma.id}
               proforma={proforma}

@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useState } from "react";
 
 import { supabase } from "./supabase";
-
+import Layaways from "./components/layaways/Layaways";
 import Proformas from "./components/proformas/Proformas";
 
 import Categories from "./components/categories/Categories";
@@ -143,6 +143,7 @@ function App() {
     });
 
   const [editingDiscountId, setEditingDiscountId] = useState(null);
+  const [recoveryDraft, setRecoveryDraft] = useState(null);
 
   async function load() {
     if (!supabase) {
@@ -815,6 +816,7 @@ Quedo pendiente de confirmar envío o entrega.`;
     ["discounts", "Descuentos", Percent],
 
     ["proformas", "Proformas", ClipboardList],
+    ["layaways", "Apartados", ClipboardList],
 
     ["sales", "Ventas", Receipt],
 
@@ -1731,7 +1733,21 @@ Quedo pendiente de confirmar envío o entrega.`;
               <Proformas
                 products={products}
                 discounts={discounts}
+                variants={variants}
+                recoveryDraft={recoveryDraft}
+                onRecoveryDraftConsumed={() => setRecoveryDraft(null)}
                 onConfirmSale={confirmSale}
+              />
+            )}
+            {page === "layaways" && (
+              <Layaways
+                products={products}
+                productVariants={variants}
+                onRecoverProforma={(draft) => {
+                  setRecoveryDraft(draft);
+                  setPage("proformas");
+                  setSidebarOpen(false);
+                }}
               />
             )}
                         {page === "sales" && <Sales />}           {" "}
