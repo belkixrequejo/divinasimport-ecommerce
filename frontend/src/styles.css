@@ -4282,3 +4282,52 @@ button:hover:not(:disabled) {
     grid-row: 2;
   }
 }
+
+/* BOTÓN DESCARGAR COMPROBANTE DE APARTADO */
+
+.layawayDownloadButton {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 9px;
+  padding: 11px 18px;
+  border: none;
+  border-radius: 9px;
+  background: #884798;
+  color: #ffffff;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.25s ease;
+  box-shadow: 0 3px 9px rgba(136, 71, 152, 0.18);
+}
+
+.layawayDownloadButton:hover {
+  background: #713681;
+  box-shadow: 0 5px 14px rgba(136, 71, 152, 0.28);
+  transform: translateY(-2px);
+}
+
+.layawayDownloadButton:active {
+  transform: scale(0.97);
+}
+
+.layawayDownloadButton:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
+}
+
+.layawayDownloadButton svg {
+  width: 17px;
+  height: 17px;
+  stroke-width: 2.2;
+}
+
+@media (max-width: 600px) {
+  .layawayDownloadButton {
+    padding: 10px 12px;
+    font-size: 11px;
+  }
+}

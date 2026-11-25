@@ -9,9 +9,16 @@ export default function ProformaCard({
   onCancel,
   onConfirm,
   onDeliveryChange,
+  onLayaway,
 }) {
   const [processing, setProcessing] = useState(false);
   const [downloading, setDownloading] = useState(false);
+  const [showLayaway, setShowLayaway] = useState(false);
+  const [initialPayment, setInitialPayment] = useState("");
+  const [paymentMethod, setPaymentMethod] = useState("EFECTIVO");
+  const [paymentReference, setPaymentReference] = useState("");
+  const [layawayReceipt, setLayawayReceipt] = useState(null);
+
   const receiptRef = useRef(null);
 
   const status = proforma.status;
@@ -48,6 +55,20 @@ export default function ProformaCard({
   const vatAmount = Number(proforma.vat_amount || 0);
 
   const total = subtotal + shippingCost + vatAmount;
+
+  // El apartado se calcula con precios normales, sin descuentos.
+  // La proforma original mantiene su total promocional.
+  const subtotalWithoutDiscount = items.reduce(
+    (sum, item) =>
+      sum +
+      Number(
+        item.regular_unit_price ?? item.products?.price ?? item.unit_price ?? 0,
+      ) *
+        Number(item.quantity || 0),
+    0,
+  );
+
+  const layawayTotal = subtotalWithoutDiscount + shippingCost + vatAmount;
 
   const amountToDivinas =
     collectionType === "CONTRA_ENTREGA" ? shippingCost : total;
@@ -136,6 +157,70 @@ export default function ProformaCard({
     }
   }
 
+  async function handleLayaway(e) {
+    e.preventDefault();
+
+    if (processing) return;
+
+    if (typeof onLayaway !== "function") {
+      window.notify?.(
+        "Falta conectar la acción de apartar desde Proformas.jsx.",
+        "error",
+      );
+      return;
+    }
+
+    const amount = Number(initialPayment);
+
+    if (!Number.isFinite(amount) || amount <= 0) {
+      window.notify?.("Ingresa un abono inicial válido.", "error");
+      return;
+    }
+
+    if (amount > layawayTotal) {
+      window.notify?.(
+        "El abono no puede superar el total del apartado sin descuento.",
+        "error",
+      );
+      return;
+    }
+
+    try {
+      setProcessing(true);
+
+      const result = await onLayaway(proforma.id, {
+        initial_payment: amount,
+        payment_method: paymentMethod,
+        payment_reference: paymentReference.trim() || null,
+      });
+
+      const expiresAt = new Date();
+      expiresAt.setDate(expiresAt.getDate() + 7);
+
+      setLayawayReceipt({
+        total: layawayTotal,
+        initialPayment: amount,
+        balance: Math.max(0, layawayTotal - amount),
+        expiresAt,
+        paymentMethod,
+        paymentReference: paymentReference.trim() || null,
+        result,
+      });
+
+      setShowLayaway(false);
+      setInitialPayment("");
+      setPaymentReference("");
+      setPaymentMethod("EFECTIVO");
+    } catch (error) {
+      window.notify?.(
+        error.message || "No se pudo crear el apartado.",
+        "error",
+      );
+    } finally {
+      setProcessing(false);
+    }
+  }
+
   async function downloadProforma() {
     if (!receiptRef.current || downloading) return;
 
@@ -156,11 +241,18 @@ export default function ProformaCard({
         "-",
       );
 
-      link.download = `DIVINAS-IMPORT-PROFORMA-${number}.png`;
+      link.download = layawayReceipt
+        ? `DIVINAS-IMPORT-APARTADO-${number}.png`
+        : `DIVINAS-IMPORT-PROFORMA-${number}.png`;
       link.href = canvas.toDataURL("image/png");
       link.click();
 
-      window.notify?.("Proforma descargada correctamente.", "success");
+      window.notify?.(
+        layawayReceipt
+          ? "Comprobante de apartado descargado correctamente."
+          : "Proforma descargada correctamente.",
+        "success",
+      );
     } catch (error) {
       console.error("Error descargando proforma:", error);
 
@@ -219,36 +311,30 @@ export default function ProformaCard({
         </label>
 
         <div className="proformaItems">
-          {items.map((item) => {
-            const imageUrl = item.products?.image_url || item.image_url || "";
-            const productName =
-              item.products?.name ||
-              item.product_name_snapshot ||
-              item.product_name ||
-              "Producto";
-
-            return (
-              <div className="proformaCardItem" key={item.id}>
-                <div className="proformaCardItemInfo">
-                  <span>{productName}</span>
-                  {item.product_variants && (
-                    <small>
-                      Talla: {item.product_variants.size || "—"} · Color:{" "}
-                      {item.product_variants.color || "—"}
-                    </small>
-                  )}
-                  <small>
-                    {item.quantity} × {money(item.unit_price)}
-                  </small>
-                </div>
+          {items.map((item) => (
+            <div key={item.id}>
+              <div className="proformaItemDescription">
                 <strong>
-                  {money(
-                    Number(item.unit_price || 0) * Number(item.quantity || 0),
-                  )}
+                  {item.products?.name ||
+                    item.product_name_snapshot ||
+                    item.product_name ||
+                    "Producto"}
                 </strong>
+
+                {item.product_variants && (
+                  <small>
+                    Modelo: {item.product_variants.sku || "—"} · Color:{" "}
+                    {item.product_variants.color || "—"} · Talla:{" "}
+                    {item.product_variants.size || "—"}
+                  </small>
+                )}
               </div>
-            );
-          })}
+
+              <span>
+                {item.quantity} × {money(item.unit_price)}
+              </span>
+            </div>
+          ))}
         </div>
 
         <div className="proformaDownloadActions">
@@ -259,7 +345,11 @@ export default function ProformaCard({
             disabled={downloading}
           >
             <Download size={17} />
-            {downloading ? "Generando imagen..." : "Descargar proforma PNG"}
+            {downloading
+              ? "Generando imagen..."
+              : layawayReceipt
+                ? "Descargar comprobante de apartado PNG"
+                : "Descargar proforma PNG"}
           </button>
         </div>
 
@@ -279,6 +369,14 @@ export default function ProformaCard({
 
             <button
               type="button"
+              disabled={processing}
+              onClick={() => setShowLayaway(true)}
+            >
+              Apartar con abono
+            </button>
+
+            <button
+              type="button"
               className="primary"
               disabled={processing}
               onClick={handleConfirm}
@@ -289,7 +387,82 @@ export default function ProformaCard({
         )}
       </article>
 
-      {/* Comprobante oculto para generar PNG */}
+      {/* FORMULARIO PARA CREAR APARTADO */}
+      {showLayaway && (
+        <div className="layawayOverlay">
+          <form className="layawayForm" onSubmit={handleLayaway}>
+            <button
+              type="button"
+              className="layawayClose"
+              onClick={() => setShowLayaway(false)}
+              aria-label="Cerrar"
+            >
+              ×
+            </button>
+
+            <h2>Apartar proforma</h2>
+
+            <p>
+              Cliente: <strong>{customer.full_name || "No registrado"}</strong>
+            </p>
+
+            <p>
+              Total sin descuento: <strong>{money(layawayTotal)}</strong>
+            </p>
+
+            <label>
+              Abono inicial
+              <input
+                type="number"
+                min="0.01"
+                max={layawayTotal}
+                step="0.01"
+                required
+                value={initialPayment}
+                onChange={(e) => setInitialPayment(e.target.value)}
+                placeholder="Ej. 10.00"
+              />
+            </label>
+
+            <label>
+              Método de pago
+              <select
+                value={paymentMethod}
+                onChange={(e) => setPaymentMethod(e.target.value)}
+              >
+                <option value="EFECTIVO">Efectivo</option>
+                <option value="TRANSFERENCIA">Transferencia</option>
+                <option value="TARJETA">Tarjeta</option>
+                <option value="CONTRA_ENTREGA">Contra entrega</option>
+              </select>
+            </label>
+
+            <label>
+              Referencia (opcional)
+              <input
+                value={paymentReference}
+                onChange={(e) => setPaymentReference(e.target.value)}
+                placeholder="Número de comprobante"
+              />
+            </label>
+
+            <p>
+              Saldo pendiente:{" "}
+              <strong>
+                {money(Math.max(0, layawayTotal - Number(initialPayment || 0)))}
+              </strong>
+            </p>
+
+            <small>El apartado tendrá una vigencia de 7 días.</small>
+
+            <button className="primary" type="submit" disabled={processing}>
+              {processing ? "Registrando..." : "Confirmar apartado"}
+            </button>
+          </form>
+        </div>
+      )}
+
+      {/* COMPROBANTE OCULTO PARA GENERAR PNG */}
       <div className="proformaReceiptCapture">
         <div className="proformaReceipt" ref={receiptRef}>
           <header className="proformaReceiptBrand">
@@ -301,9 +474,11 @@ export default function ProformaCard({
 
             <div className="proformaReceiptAccent" />
 
-            <h2>PROFORMA</h2>
+            <h2>{layawayReceipt ? "COMPROBANTE DE APARTADO" : "PROFORMA"}</h2>
 
-            <span className="proformaReceiptStatus">{status}</span>
+            <span className="proformaReceiptStatus">
+              {layawayReceipt ? "APARTADO" : status}
+            </span>
           </header>
 
           <div className="proformaReceiptNumber">
@@ -334,11 +509,23 @@ export default function ProformaCard({
           </section>
 
           <section className="proformaReceiptBlock">
-            <h3>INFORMACIÓN DE LA PROFORMA</h3>
+            <h3>{layawayReceipt ? "INFORMACIÓN DEL APARTADO" : "INFORMACIÓN DE LA PROFORMA"}</h3>
 
             <p>
               <strong>Fecha:</strong> {saleDate}
             </p>
+
+            {layawayReceipt && (
+              <>
+                <p>
+                  <strong>Válido hasta:</strong>{" "}
+                  {layawayReceipt.expiresAt.toLocaleDateString("es-EC")}
+                </p>
+                <p>
+                  <strong>Vigencia:</strong> 7 días
+                </p>
+              </>
+            )}
 
             <p>
               <strong>Tipo de entrega:</strong> {deliveryLabel(deliveryType)}
@@ -414,7 +601,9 @@ export default function ProformaCard({
 
             <div>
               <span>Subtotal de productos</span>
-              <strong>{money(subtotal)}</strong>
+              <strong>
+                {money(layawayReceipt ? subtotalWithoutDiscount : subtotal)}
+              </strong>
             </div>
 
             {deliveryType === "ENVIO" && (
@@ -430,9 +619,22 @@ export default function ProformaCard({
             </div>
 
             <div className="proformaReceiptGrandTotal">
-              <span>TOTAL DE LA PROFORMA</span>
-              <strong>{money(total)}</strong>
+              <span>{layawayReceipt ? "TOTAL DEL APARTADO" : "TOTAL DE LA PROFORMA"}</span>
+              <strong>{money(layawayReceipt ? layawayReceipt.total : total)}</strong>
             </div>
+
+            {layawayReceipt && (
+              <>
+                <div>
+                  <span>Abono inicial recibido</span>
+                  <strong>{money(layawayReceipt.initialPayment)}</strong>
+                </div>
+                <div className="proformaReceiptGrandTotal">
+                  <span>SALDO PENDIENTE</span>
+                  <strong>{money(layawayReceipt.balance)}</strong>
+                </div>
+              </>
+            )}
           </div>
 
           {deliveryType === "ENVIO" && (
@@ -476,8 +678,9 @@ export default function ProformaCard({
             <p>DIVINAS IMPORT · Moda para toda la familia</p>
 
             <small>
-              Este documento es una proforma y no constituye comprobante de
-              pago.
+              {layawayReceipt
+                ? "Comprobante informativo de apartado. El abono inicial queda registrado en el historial del apartado."
+                : "Este documento es una proforma y no constituye comprobante de pago."}
             </small>
           </footer>
         </div>

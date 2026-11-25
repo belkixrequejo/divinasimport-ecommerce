@@ -115,6 +115,31 @@ export default function Proformas({
     }
   }
 
+  // Crear apartado desde una proforma pendiente.
+  // El backend registra el abono inicial y reserva las existencias.
+  async function createLayaway(id, payload) {
+    try {
+      const result = await request(`/admin/proformas/${id}/layaway`, {
+        method: "POST",
+        body: JSON.stringify(payload),
+      });
+
+      window.notify?.(
+        "Apartado creado correctamente. Se registró el abono inicial y se reservó el stock.",
+        "success",
+      );
+
+      await loadProformas();
+      return result;
+    } catch (error) {
+      window.notify?.(
+        error.message || "No se pudo crear el apartado.",
+        "error",
+      );
+      throw error;
+    }
+  }
+
   async function cancelProforma(id) {
     try {
       await request(`/admin/proformas/${id}/cancel`, {
@@ -248,6 +273,7 @@ export default function Proformas({
               onCancel={cancelProforma}
               onConfirm={onConfirmSale}
               onDeliveryChange={changeDelivery}
+              onLayaway={createLayaway}
             />
           ))}
         </div>

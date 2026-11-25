@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { supabase } from "../../supabase";
 import {
   RefreshCw,
@@ -10,11 +10,25 @@ import {
   Clock,
   History,
   X,
+  Download,
 } from "lucide-react";
+import html2canvas from "html2canvas";
 
 const API = import.meta.env.VITE_API_URL;
 
 const money = (value) => `$${Number(value || 0).toFixed(2)}`;
+
+const formatDate = (value, withTime = true) => {
+  if (!value) return "—";
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "—";
+  return date.toLocaleString(
+    "es-EC",
+    withTime
+      ? { dateStyle: "long", timeStyle: "short" }
+      : { dateStyle: "long" },
+  );
+};
 
 const paymentMethods = [
   "EFECTIVO",
@@ -40,6 +54,8 @@ export default function Layaways({
   const [method, setMethod] = useState("EFECTIVO");
   const [reference, setReference] = useState("");
   const [saving, setSaving] = useState(false);
+  const [downloading, setDownloading] = useState(false);
+  const receiptRef = useRef(null);
 
   const [newItems, setNewItems] = useState([]);
   const [variants, setVariants] = useState([]);
@@ -278,6 +294,43 @@ export default function Layaways({
     }
   }
 
+  async function downloadLayawayReceipt() {
+    if (!selected || !receiptRef.current || downloading) return;
+
+    try {
+      setDownloading(true);
+
+      const canvas = await html2canvas(receiptRef.current, {
+        scale: 2,
+        backgroundColor: "#ffffff",
+        logging: false,
+        useCORS: true,
+      });
+
+      const link = document.createElement("a");
+      const number = String(
+        selected.proformas?.proforma_number || selected.id,
+      ).replace(/[^a-zA-Z0-9-_]/g, "-");
+
+      link.download = `DIVINAS-IMPORT-APARTADO-${number}.png`;
+      link.href = canvas.toDataURL("image/png");
+      link.click();
+
+      window.notify?.(
+        "Comprobante de apartado descargado correctamente.",
+        "success",
+      );
+    } catch (error) {
+      console.error("Error descargando comprobante de apartado:", error);
+      window.notify?.(
+        "No se pudo generar el comprobante del apartado.",
+        "error",
+      );
+    } finally {
+      setDownloading(false);
+    }
+  }
+
   async function loadVariants(productId) {
     const { data, error } = await supabase
       .from("product_variants")
@@ -441,9 +494,20 @@ export default function Layaways({
                 <p>{selected.customers?.full_name}</p>
               </div>
 
-              <button onClick={() => setSelected(null)}>
-                <X />
-              </button>
+              <div className="layawayModalHeaderActions">
+                <button
+                  type="button"
+                  className="layawayDownloadButton"
+                  onClick={downloadLayawayReceipt}
+                  disabled={downloading}
+                >
+                  <Download size={16} />
+                  {downloading ? "Generando..." : "Descargar comprobante"}
+                </button>
+                <button type="button" onClick={() => setSelected(null)}>
+                  <X />
+                </button>
+              </div>
             </div>
 
             <div className="layawayTotals">
@@ -530,9 +594,343 @@ export default function Layaways({
 
             <p className="layawayExpiry">
               <Clock size={16} />
-              Vencimiento:{" "}
-              {new Date(selected.expires_at).toLocaleString("es-EC")}
+              Vencimiento: {formatDate(selected.expires_at)}
             </p>
+
+            {/* Comprobante oculto: se usa únicamente para generar el PNG */}
+            <div
+              style={{
+                position: "fixed",
+                left: "-10000px",
+                top: 0,
+                width: "800px",
+                zIndex: -1,
+                pointerEvents: "none",
+              }}
+            >
+              <div
+                ref={receiptRef}
+                style={{
+                  width: "800px",
+                  boxSizing: "border-box",
+                  padding: "48px 54px",
+                  background: "#ffffff",
+                  color: "#302637",
+                  fontFamily: "Arial, sans-serif",
+                }}
+              >
+                <header style={{ textAlign: "center", marginBottom: "34px" }}>
+                  <div
+                    style={{
+                      fontSize: "42px",
+                      fontWeight: 900,
+                      letterSpacing: "2px",
+                      color: "#884798",
+                    }}
+                  >
+                    DIVINAS <span style={{ color: "#ff920c" }}>IMPORT</span>
+                  </div>
+                  <p
+                    style={{
+                      color: "#888",
+                      letterSpacing: "4px",
+                      fontSize: "14px",
+                    }}
+                  >
+                    MODA PARA TODA LA FAMILIA
+                  </p>
+                  <div
+                    style={{
+                      width: "110px",
+                      height: "6px",
+                      background: "#ff920c",
+                      borderRadius: "8px",
+                      margin: "20px auto",
+                    }}
+                  />
+                  <h1
+                    style={{
+                      color: "#884798",
+                      fontSize: "30px",
+                      margin: "12px 0",
+                    }}
+                  >
+                    COMPROBANTE DE APARTADO
+                  </h1>
+                  <span
+                    style={{
+                      display: "inline-block",
+                      padding: "9px 24px",
+                      borderRadius: "24px",
+                      background: "#f7f0f8",
+                      color: "#884798",
+                      fontWeight: 700,
+                    }}
+                  >
+                    {selected.status || "APARTADO"}
+                  </span>
+                </header>
+
+                <div
+                  style={{
+                    padding: "18px 22px",
+                    border: "1px solid #eaddec",
+                    borderRadius: "12px",
+                    background: "#faf7fb",
+                    display: "flex",
+                    justifyContent: "space-between",
+                    gap: "16px",
+                    marginBottom: "28px",
+                  }}
+                >
+                  <strong>N.º DE PROFORMA</strong>
+                  <strong style={{ color: "#884798", fontSize: "22px" }}>
+                    {selected.proformas?.proforma_number || "—"}
+                  </strong>
+                </div>
+
+                <section style={{ marginBottom: "26px" }}>
+                  <h3
+                    style={{
+                      color: "#884798",
+                      borderBottom: "2px solid #eaddec",
+                      paddingBottom: "9px",
+                    }}
+                  >
+                    DATOS DEL CLIENTE
+                  </h3>
+                  <p>
+                    <strong>Cliente:</strong>{" "}
+                    {selected.customers?.full_name || "No registrado"}
+                  </p>
+                  <p>
+                    <strong>Teléfono:</strong>{" "}
+                    {selected.customers?.phone || "No registrado"}
+                  </p>
+                  <p>
+                    <strong>Ciudad:</strong>{" "}
+                    {selected.customers?.city || "No registrada"}
+                  </p>
+                  {selected.customers?.address && (
+                    <p>
+                      <strong>Dirección:</strong> {selected.customers.address}
+                    </p>
+                  )}
+                </section>
+
+                <section style={{ marginBottom: "26px" }}>
+                  <h3
+                    style={{
+                      color: "#884798",
+                      borderBottom: "2px solid #eaddec",
+                      paddingBottom: "9px",
+                    }}
+                  >
+                    INFORMACIÓN DEL APARTADO
+                  </h3>
+                  <p>
+                    <strong>Fecha de creación:</strong>{" "}
+                    {formatDate(selected.created_at)}
+                  </p>
+                  <p>
+                    <strong>Fecha de vencimiento:</strong>{" "}
+                    {formatDate(selected.expires_at)}
+                  </p>
+                  <p>
+                    <strong>Vigencia:</strong> 7 días desde el abono inicial
+                  </p>
+                  <p>
+                    <strong>Tipo de entrega:</strong>{" "}
+                    {selected.proformas?.delivery_type === "ENVIO"
+                      ? "Envío"
+                      : selected.proformas?.delivery_type === "RETIRO"
+                        ? "Retiro en tienda"
+                        : selected.proformas?.delivery_type === "LOCAL"
+                          ? "Compra directa en local"
+                          : "Por definir"}
+                  </p>
+                </section>
+
+                <section style={{ marginBottom: "26px" }}>
+                  <h3
+                    style={{
+                      color: "#884798",
+                      borderBottom: "2px solid #eaddec",
+                      paddingBottom: "9px",
+                    }}
+                  >
+                    PRODUCTOS APARTADOS
+                  </h3>
+                  <div
+                    style={{
+                      display: "grid",
+                      gridTemplateColumns: "1fr 90px 120px",
+                      gap: "12px",
+                      background: "#884798",
+                      color: "#fff",
+                      padding: "13px 15px",
+                      borderRadius: "8px",
+                      fontWeight: 700,
+                    }}
+                  >
+                    <span>PRODUCTO</span>
+                    <span style={{ textAlign: "center" }}>CANT.</span>
+                    <span style={{ textAlign: "right" }}>TOTAL</span>
+                  </div>
+                  {(selected.proformas?.proforma_items || []).map((item) => {
+                    const productName =
+                      item.product_name_snapshot ||
+                      item.product_name ||
+                      item.products?.name ||
+                      "Producto";
+                    const variant = item.product_variants || {};
+                    const lineTotal =
+                      Number(item.unit_price || 0) * Number(item.quantity || 0);
+                    return (
+                      <div
+                        key={item.id}
+                        style={{
+                          display: "grid",
+                          gridTemplateColumns: "1fr 90px 120px",
+                          gap: "12px",
+                          padding: "16px 15px",
+                          borderBottom: "1px solid #eee",
+                          alignItems: "center",
+                        }}
+                      >
+                        <div>
+                          <strong>{productName}</strong>
+                          <div
+                            style={{
+                              color: "#888",
+                              fontSize: "13px",
+                              marginTop: "5px",
+                            }}
+                          >
+                            {variant.size || item.size || ""}
+                            {(variant.size || item.size) &&
+                            (variant.color || item.color)
+                              ? " · "
+                              : ""}
+                            {variant.color || item.color || ""}
+                          </div>
+                          <small style={{ color: "#888" }}>
+                            Precio unitario: {money(item.unit_price)}
+                          </small>
+                        </div>
+                        <strong style={{ textAlign: "center" }}>
+                          {item.quantity}
+                        </strong>
+                        <strong style={{ textAlign: "right" }}>
+                          {money(lineTotal)}
+                        </strong>
+                      </div>
+                    );
+                  })}
+                </section>
+
+                <section
+                  style={{
+                    padding: "22px",
+                    borderRadius: "12px",
+                    background: "#f7f1f9",
+                    marginBottom: "26px",
+                  }}
+                >
+                  <div
+                    style={{
+                      display: "flex",
+                      justifyContent: "space-between",
+                      marginBottom: "12px",
+                    }}
+                  >
+                    <span>Total del apartado (sin descuento)</span>
+                    <strong>{money(selected.proformas?.total)}</strong>
+                  </div>
+                  <div
+                    style={{
+                      display: "flex",
+                      justifyContent: "space-between",
+                      marginBottom: "12px",
+                    }}
+                  >
+                    <span>Total abonado</span>
+                    <strong>{money(paid)}</strong>
+                  </div>
+                  <div
+                    style={{
+                      display: "flex",
+                      justifyContent: "space-between",
+                      borderTop: "1px solid #dfcde4",
+                      paddingTop: "14px",
+                      color: "#884798",
+                      fontSize: "22px",
+                    }}
+                  >
+                    <strong>SALDO PENDIENTE</strong>
+                    <strong>{money(balance)}</strong>
+                  </div>
+                </section>
+
+                <section style={{ marginBottom: "28px" }}>
+                  <h3
+                    style={{
+                      color: "#884798",
+                      borderBottom: "2px solid #eaddec",
+                      paddingBottom: "9px",
+                    }}
+                  >
+                    HISTORIAL DE ABONOS
+                  </h3>
+                  {(payments || []).length ? (
+                    payments.map((payment) => (
+                      <div
+                        key={payment.id}
+                        style={{
+                          display: "flex",
+                          justifyContent: "space-between",
+                          padding: "11px 0",
+                          borderBottom: "1px solid #eee",
+                        }}
+                      >
+                        <div>
+                          <strong>{money(payment.amount)}</strong>
+                          <div style={{ color: "#888", fontSize: "12px" }}>
+                            {payment.payment_method || "—"}
+                            {payment.payment_reference
+                              ? ` · ${payment.payment_reference}`
+                              : ""}
+                          </div>
+                        </div>
+                        <span style={{ color: "#777", fontSize: "12px" }}>
+                          {formatDate(payment.paid_at)}
+                        </span>
+                      </div>
+                    ))
+                  ) : (
+                    <p>No hay abonos registrados.</p>
+                  )}
+                </section>
+
+                <footer
+                  style={{
+                    textAlign: "center",
+                    borderTop: "2px dashed #ddd",
+                    paddingTop: "24px",
+                    color: "#888",
+                  }}
+                >
+                  <strong style={{ color: "#884798", fontSize: "20px" }}>
+                    ¡GRACIAS POR PREFERIRNOS!
+                  </strong>
+                  <p>DIVINAS IMPORT · Moda para toda la familia</p>
+                  <small>
+                    Este documento es un comprobante informativo de apartado y
+                    no constituye comprobante de pago.
+                  </small>
+                </footer>
+              </div>
+            </div>
           </div>
         </div>
       )}
