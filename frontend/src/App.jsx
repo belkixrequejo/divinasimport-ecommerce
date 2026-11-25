@@ -36,26 +36,6 @@ import {
   Receipt,
 } from "lucide-react";
 
-const CATS = [
-  "Ropa deportiva",
-
-  "Ropa damas",
-
-  "Ropa de niño",
-
-  "Ropa de niña",
-
-  "Ropa de caballeros",
-
-  "Accesorios",
-
-  "Perfumes",
-
-  "Cabello",
-
-  "Zapatos",
-];
-
 const money = (n) =>
   "$" +
   Number(n || 0)
@@ -251,6 +231,24 @@ function App() {
 
     [products, cat, query, discounts],
   );
+
+  // Mostrar únicamente categorías que tengan productos activos en la tienda.
+  const availableCategories = useMemo(
+    () =>
+      [
+        ...new Set(
+          products.map((product) => product.categories?.name).filter(Boolean),
+        ),
+      ].sort((a, b) => a.localeCompare(b, "es")),
+    [products],
+  );
+
+  // Si la categoría seleccionada deja de tener productos, regresar a "Todas".
+  useEffect(() => {
+    if (cat !== "Todas" && !availableCategories.includes(cat)) {
+      setCat("Todas");
+    }
+  }, [cat, availableCategories]);
 
   const openProductOptions = (product) => {
     const productVariants = variants.filter((v) => v.product_id === product.id);
@@ -1034,8 +1032,9 @@ Quedo pendiente de confirmar envío o entrega.`;
                             <Filter size={17} /> Categorías            {" "}
             </h3>
                        {" "}
-            {["Todas", ...CATS].map((x) => (
+            {["Todas", ...availableCategories].map((x) => (
               <button
+                key={x}
                 className={cat === x ? "selected" : ""}
                 onClick={() => setCat(x)}
               >
