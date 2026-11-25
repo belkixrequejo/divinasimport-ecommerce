@@ -162,6 +162,48 @@ app.post("/api/store/orders", async (req, res) => {
 });
 
 // ========================================
+// NORMALIZAR PRECIOS PARA CONTRA ENTREGA
+// ========================================
+
+async function normalizeContraEntregaItems(items, collectionType) {
+  if (collectionType !== "CONTRA_ENTREGA") {
+    return items;
+  }
+
+  const productIds = [
+    ...new Set(items.map((item) => item.product_id).filter(Boolean)),
+  ];
+
+  const { data: products, error } = await db
+    .from("products")
+    .select("id, price, is_active")
+    .in("id", productIds);
+
+  if (error) throw error;
+
+  const productsMap = new Map(
+    (products || []).map((product) => [String(product.id), product]),
+  );
+
+  return items.map((item) => {
+    const product = productsMap.get(String(item.product_id));
+
+    if (!product || product.is_active === false) {
+      throw new Error(`No se encontró un producto activo: ${item.product_id}`);
+    }
+
+    const regularPrice = Number(product.price);
+
+    return {
+      ...item,
+      unit_price: regularPrice,
+      regular_unit_price: regularPrice,
+      discount_percent: 0,
+    };
+  });
+}
+
+// ========================================
 // CREAR PROFORMA DESDE ADMINISTRACIÓN
 // ========================================
 
@@ -184,10 +226,16 @@ app.post("/api/admin/proformas", auth, async (req, res) => {
       });
     }
 
+    // Aplicar precios normales cuando sea contra entrega
+    const normalizedItems = await normalizeContraEntregaItems(
+      items,
+      collection,
+    );
+
     // Crear la proforma utilizando la función SQL existente
     const { data, error } = await db.rpc("create_proforma", {
       p_customer: customer,
-      p_items: items,
+      p_items: normalizedItems,
       p_delivery_type: delivery,
       p_created_by: req.user.id,
     });
@@ -276,11 +324,17 @@ app.put("/api/admin/proformas/:id", auth, async (req, res) => {
       });
     }
 
+    // Aplicar precios normales cuando sea contra entrega
+    const normalizedItems = await normalizeContraEntregaItems(
+      items,
+      collection,
+    );
+
     // Actualizar datos de cliente y productos
     const { data, error } = await db.rpc("update_pending_proforma", {
       p_proforma_id: id,
       p_customer: customer,
-      p_items: items,
+      p_items: normalizedItems,
       p_delivery_type: delivery,
     });
 
@@ -505,20 +559,26 @@ app.get("/api/admin/customers", auth, async (req, res) => {
 // MANEJO DE ERRORES
 // ========================================
 
-
 /* ========================================
    APARTADOS - CREAR DESDE PROFORMA
 ======================================== */
 
 app.post("/api/admin/proformas/:id/layaway", auth, async (req, res) => {
   try {
-    const { initial_payment, payment_method, payment_reference } = req.body || {};
+    const { initial_payment, payment_method, payment_reference } =
+      req.body || {};
     const amount = Number(initial_payment);
 
     if (!Number.isFinite(amount) || amount <= 0)
-      return res.status(400).json({ error: "El abono inicial debe ser mayor a cero." });
+      return res
+        .status(400)
+        .json({ error: "El abono inicial debe ser mayor a cero." });
 
-    if (!["EFECTIVO", "TRANSFERENCIA", "TARJETA", "CONTRA_ENTREGA"].includes(payment_method))
+    if (
+      !["EFECTIVO", "TRANSFERENCIA", "TARJETA", "CONTRA_ENTREGA"].includes(
+        payment_method,
+      )
+    )
       return res.status(400).json({ error: "Método de pago no válido." });
 
     const { data, error } = await db.rpc("create_layaway_from_proforma", {
@@ -544,7 +604,8 @@ app.post("/api/admin/proformas/:id/layaway", auth, async (req, res) => {
 app.get("/api/admin/layaways", auth, async (req, res) => {
   try {
     const allowed = ["ACTIVO", "COMPLETADO", "VENCIDO", "CANCELADO"];
-    let query = db.from("layaways")
+    let query = db
+      .from("layaways")
       .select("*, customers(*), proformas(*)")
       .order("expires_at", { ascending: true });
 
@@ -569,8 +630,11 @@ app.get("/api/admin/layaways", auth, async (req, res) => {
 
 app.get("/api/admin/layaways/:id", auth, async (req, res) => {
   try {
-    const { data, error } = await db.from("layaways")
-      .select("*, customers(*), proformas(*, proforma_items(*)), layaway_payments(*)")
+    const { data, error } = await db
+      .from("layaways")
+      .select(
+        "*, customers(*), proformas(*, proforma_items(*)), layaway_payments(*)",
+      )
       .eq("id", req.params.id)
       .single();
 
@@ -594,7 +658,11 @@ app.post("/api/admin/layaways/:id/payments", auth, async (req, res) => {
     if (!Number.isFinite(paymentAmount) || paymentAmount <= 0)
       return res.status(400).json({ error: "El abono debe ser mayor a cero." });
 
-    if (!["EFECTIVO", "TRANSFERENCIA", "TARJETA", "CONTRA_ENTREGA"].includes(payment_method))
+    if (
+      !["EFECTIVO", "TRANSFERENCIA", "TARJETA", "CONTRA_ENTREGA"].includes(
+        payment_method,
+      )
+    )
       return res.status(400).json({ error: "Método de pago no válido." });
 
     const { data, error } = await db.rpc("register_layaway_payment", {
@@ -646,8 +714,12 @@ app.post("/api/admin/layaways/:id/convert", auth, async (req, res) => {
   try {
     const { final_payment_method, final_payment_reference } = req.body || {};
 
-    if (final_payment_method &&
-      !["EFECTIVO", "TRANSFERENCIA", "TARJETA", "CONTRA_ENTREGA"].includes(final_payment_method))
+    if (
+      final_payment_method &&
+      !["EFECTIVO", "TRANSFERENCIA", "TARJETA", "CONTRA_ENTREGA"].includes(
+        final_payment_method,
+      )
+    )
       return res.status(400).json({ error: "Método de pago final no válido." });
 
     const { data, error } = await db.rpc("convert_layaway_to_sale", {

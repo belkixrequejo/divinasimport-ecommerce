@@ -2,6 +2,15 @@ import { useEffect, useState } from "react";
 import { money, round50 } from "./utils";
 import { supabase } from "../../supabase";
 
+function getEditDiscountPercent(productId, products = [], discounts = []) {
+  const product = products.find((p) => String(p.id) === String(productId));
+  if (!product) return 0;
+  const discount = discounts.find(
+    (d) => d.category_id === product.category_id && d.is_active !== false,
+  );
+  return Number(discount?.percentage || 0);
+}
+
 export default function ProformaForm({
   products,
   discounts,
@@ -31,6 +40,41 @@ export default function ProformaForm({
   const [deliveryType, setDeliveryType] = useState("POR_DEFINIR");
   const [shippingCost, setShippingCost] = useState("0");
   const [collectionType, setCollectionType] = useState("PREPAID");
+
+  const isContraEntrega =
+    deliveryType === "ENVIO" && collectionType === "CONTRA_ENTREGA";
+
+  function getProductDiscount(productId) {
+    const product = products.find((p) => String(p.id) === String(productId));
+    if (!product) return 0;
+    const discount = discounts.find(
+      (d) => d.category_id === product.category_id && d.is_active !== false,
+    );
+    return Number(discount?.percentage || 0);
+  }
+
+  function changeCollectionType(value) {
+    setCollectionType(value);
+    setItems((current) =>
+      current.map((item) => {
+        const regularPrice = Number(item.regular_unit_price ?? item.unit_price);
+        if (value === "CONTRA_ENTREGA") {
+          return {
+            ...item,
+            unit_price: regularPrice,
+            discount_percent: 0,
+          };
+        }
+
+        const percentage = getProductDiscount(item.product_id);
+        return {
+          ...item,
+          unit_price: round50(regularPrice * (1 - percentage / 100)),
+          discount_percent: percentage,
+        };
+      }),
+    );
+  }
 
   // Cargar clientes registrados para poder seleccionarlos por nombre o teléfono.
   useEffect(() => {
@@ -103,34 +147,41 @@ export default function ProformaForm({
       });
       setCustomerSearch(proforma.customers?.full_name || "");
 
+      const editingContraEntrega =
+        proforma.delivery_type === "ENVIO" &&
+        proforma.collection_type === "CONTRA_ENTREGA";
+
       setItems(
-        (proforma.proforma_items || []).map((item) => ({
-          product_id: item.product_id,
-          line_key: `${item.product_id}:${item.variant_id || "sin-variante"}`,
-          variant_id: item.variant_id || null,
-          variant: item.product_variants || null,
-          name:
-            item.products?.name ||
-            item.product_name_snapshot ||
-            item.product_name ||
-            "",
-          image_url:
-            item.products?.image_url ||
-            products.find(
-              (product) => String(product.id) === String(item.product_id),
-            )?.image_url ||
-            "",
-          quantity: Number(item.quantity),
-          unit_price: Number(item.unit_price),
-          regular_unit_price: Number(
-            item.regular_unit_price ??
-              products.find(
-                (product) => String(product.id) === String(item.product_id),
-              )?.price ??
-              item.unit_price,
-          ),
-          discount_percent: Number(item.discount_percent || 0),
-        })),
+        (proforma.proforma_items || []).map((item) => {
+          const product = products.find(
+            (row) => String(row.id) === String(item.product_id),
+          );
+          const regularPrice = Number(
+            item.regular_unit_price ?? product?.price ?? item.unit_price ?? 0,
+          );
+          const percentage = editingContraEntrega
+            ? 0
+            : getEditDiscountPercent(item.product_id, products, discounts);
+
+          return {
+            product_id: item.product_id,
+            line_key: `${item.product_id}:${item.variant_id || "sin-variante"}`,
+            variant_id: item.variant_id || null,
+            variant: item.product_variants || null,
+            name:
+              item.products?.name ||
+              item.product_name_snapshot ||
+              item.product_name ||
+              "",
+            image_url: item.products?.image_url || product?.image_url || "",
+            quantity: Number(item.quantity),
+            unit_price: editingContraEntrega
+              ? regularPrice
+              : round50(regularPrice * (1 - percentage / 100)),
+            regular_unit_price: regularPrice,
+            discount_percent: percentage,
+          };
+        }),
       );
 
       // Cargar información del envío
@@ -162,11 +213,24 @@ export default function ProformaForm({
             name: item.name || product?.name || "Producto",
             image_url: item.image_url || product?.image_url || "",
             quantity: Math.max(1, Number(item.quantity) || 1),
-            unit_price: Number(item.unit_price ?? product?.price ?? 0),
+            unit_price:
+              initialDraft.delivery_type === "ENVIO" &&
+              initialDraft.collection_type === "CONTRA_ENTREGA"
+                ? Number(
+                    item.regular_unit_price ??
+                      product?.price ??
+                      item.unit_price ??
+                      0,
+                  )
+                : Number(item.unit_price ?? product?.price ?? 0),
             regular_unit_price: Number(
-              item.regular_unit_price ?? item.unit_price ?? product?.price ?? 0,
+              item.regular_unit_price ?? product?.price ?? item.unit_price ?? 0,
             ),
-            discount_percent: Number(item.discount_percent || 0),
+            discount_percent:
+              initialDraft.delivery_type === "ENVIO" &&
+              initialDraft.collection_type === "CONTRA_ENTREGA"
+                ? 0
+                : Number(item.discount_percent || 0),
           };
         }),
       );
@@ -191,7 +255,7 @@ export default function ProformaForm({
 
     setProductCode("");
     setSearchResults([]);
-  }, [proforma, initialDraft, products, variants]);
+  }, [proforma, initialDraft, products, variants, discounts]);
 
   // Agregar producto mostrando el precio con el descuento vigente.
   // El resumen final se calcula con el precio normal, sin descuento.
@@ -238,9 +302,9 @@ export default function ProformaForm({
           name: product.name,
           image_url: product.image_url || "",
           quantity: 1,
-          unit_price: discountedPrice,
+          unit_price: isContraEntrega ? regularPrice : discountedPrice,
           regular_unit_price: regularPrice,
-          discount_percent: percentage,
+          discount_percent: isContraEntrega ? 0 : percentage,
         },
       ];
     });
@@ -437,9 +501,11 @@ export default function ProformaForm({
           product_id: item.product_id,
           variant_id: item.variant_id,
           quantity: item.quantity,
-          unit_price: item.unit_price,
+          unit_price: isContraEntrega
+            ? Number(item.regular_unit_price ?? item.unit_price)
+            : item.unit_price,
           regular_unit_price: item.regular_unit_price ?? item.unit_price,
-          discount_percent: item.discount_percent,
+          discount_percent: isContraEntrega ? 0 : item.discount_percent,
         })),
 
         delivery_type: deliveryType,
@@ -712,7 +778,7 @@ export default function ProformaForm({
                         </label>
                       );
                     })()}
-                    {item.discount_percent > 0 && (
+                    {!isContraEntrega && item.discount_percent > 0 && (
                       <small>Descuento: {item.discount_percent}%</small>
                     )}
                   </div>
@@ -730,7 +796,11 @@ export default function ProformaForm({
                   </div>
 
                   <div className="proformaItemPrice">
-                    <small>Subtotal con descuento</small>
+                    <small>
+                      {isContraEntrega
+                        ? "Subtotal sin descuento"
+                        : "Subtotal con descuento"}
+                    </small>
                     <b>{money(item.unit_price * item.quantity)}</b>
                   </div>
 
@@ -762,7 +832,7 @@ export default function ProformaForm({
 
                 if (value !== "ENVIO") {
                   setShippingCost("0");
-                  setCollectionType("PREPAID");
+                  changeCollectionType("PREPAID");
                 }
               }}
               disabled={saving}
@@ -793,7 +863,7 @@ export default function ProformaForm({
                 Modalidad de pago
                 <select
                   value={collectionType}
-                  onChange={(e) => setCollectionType(e.target.value)}
+                  onChange={(e) => changeCollectionType(e.target.value)}
                   disabled={saving}
                 >
                   <option value="PREPAID">
@@ -812,11 +882,21 @@ export default function ProformaForm({
         {/* TOTALES */}
         <div className="proformaTotals">
           <div>
-            <span>Subtotal sin descuento</span>
-            <strong>{money(subtotalWithoutDiscount)}</strong>
+            <span>
+              {isContraEntrega
+                ? "Subtotal de productos"
+                : "Subtotal sin descuento"}
+            </span>
+            <strong>
+              {money(
+                isContraEntrega
+                  ? subtotalWithDiscount
+                  : subtotalWithoutDiscount,
+              )}
+            </strong>
           </div>
 
-          {discountTotal > 0 && (
+          {!isContraEntrega && discountTotal > 0 && (
             <div>
               <span>Descuento aplicado</span>
               <strong>-{money(discountTotal)}</strong>
@@ -829,7 +909,9 @@ export default function ProformaForm({
           </div>
 
           <div>
-            <span>Total con descuento</span>
+            <span>
+              {isContraEntrega ? "Total de productos" : "Total con descuento"}
+            </span>
             <strong>{money(totalToPay)}</strong>
           </div>
 
